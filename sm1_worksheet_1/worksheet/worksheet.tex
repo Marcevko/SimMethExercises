@@ -1,0 +1,524 @@
+\input{../../common/worksheet-style.tex}
+\input{things_to_change.tex}
+
+\begin{document}
+
+\titlehead{Simulation Methods in Physics I \hfill \semester}
+\title{Worksheet 1: Integrators} 
+\author{\authors}
+\date{\titledate}
+\publishers{Institute for Computational Physics, University of Stuttgart}
+
+\maketitle
+\tableofcontents
+
+\section{General Remarks}
+\begin{itemize}
+  \item Deadline for the report is \textbf{\deadline}
+  \item On this worksheet, you can achieve a maximum of $20$ points.
+  \item The report should be written as though it would be read by a fellow
+    student who listens to the lecture, but does not do the tutorials.
+  \item To hand in your report, upload it to ILIAS and make sure to add your team member to your team. If there are any issues with this, please fall back to sending the reports via email
+    \emails
+  \item For the report itself, please use the PDF format (we will \emph{not} accept
+    MS Word doc/docx files!). 
+    Include graphs and images into the report.
+  \item If the task is to write a program, please attach the source code of the
+    program so that we can test it ourselves. Please name the program source file
+    according to the exercise it belongs to, \textit{e.g.} \lstinline{ex_2_1.py} for exercise 2.1.
+  \item The report should be 5--10 pages long. 
+    We recommend using \LaTeX.
+    A good template for a report is available on the course website at
+    \templateurl.
+  \item The worksheets are to be solved in groups of two people.
+    We will not accept hand-in exercises that only have a single name on it.
+\end{itemize}
+\section*{Testcases}
+We provide testcases for your programming tasks. That means if you follow the naming conventions
+and the implementation is correct you will get a passing test for the respective exercise. You can download
+the archive from the webpage. After downloading, you can unpack it:
+\begin{lstlisting}[language=bash]
+> tar xzvf worksheet_01.tar.gz
+\end{lstlisting}
+Afterwards you should create a directory  with the name "solutions":
+\begin{lstlisting}[language=bash]
+> mkdir solutions
+\end{lstlisting}
+Change into the "solutions" directory and start working on your programming tasks, \textit{e.g.} for exercise 2.1:
+\begin{lstlisting}[language=bash]
+> cd solutions
+> gedit ex_2_1.py
+\end{lstlisting}
+If you want to test whether you implementation is correct and complete, go into the directory named "test"
+in the archive you downloaded from the webpage and execute the respective test.
+\begin{lstlisting}[language=bash]
+> cd ../test
+> python3 test_ex_2_1.py
+..
+-------------------------------------------------------------------
+Ran 2 tests in 0.001s
+
+OK
+\end{lstlisting}
+If something went wrong if will look similar to the following output:
+\begin{lstlisting}[language=bash]
+F.
+===================================================================
+FAIL: test_force (__main__.Tests)
+-------------------------------------------------------------------
+Traceback (most recent call last):
+  File "test_ex_2_1.py", line 23, in test_force
+    np.testing.assert_array_equal(ex_2_1.force(self.mass, self.gravity), self.f)
+  File "/tikhome/kai/.local/lib/python3.6/site-packages/numpy/testing/_private/utils.py", line 918, in assert_array_equal
+    verbose=verbose, header='Arrays are not equal')
+  File "/tikhome/kai/.local/lib/python3.6/site-packages/numpy/testing/_private/utils.py", line 841, in assert_array_compare
+    raise AssertionError(msg)
+AssertionError:
+Arrays are not equal
+Implementation of the function 'force' seems wrong.
+Mismatch: 50%
+Max absolute difference: 0.1
+Max relative difference: 0.00024271
+ x: array([   0.  , -411.92])
+ y: array([   0.  , -412.02])
+
+-------------------------------------------------------------------
+Ran 2 tests in 0.013s
+
+FAILED (failures=1)
+\end{lstlisting}
+
+You have to look for an error message that gives you more information or you can look at the traceback directly:
+\begin{itemize}
+    \item error message: \lstinline[language=bash]{Implementation of the function 'force' seems wrong.}. In this case you can directly see
+          what function did not work as expected.
+    \item if there is not error message that gives insight you have to check the traceback:
+          \lstinline[language=bash]{np.testing.assert_array_equal(ex_2_1.force(self.mass, self.gravity), self.f)}. Here you just see that this assertion gave an error and you see that two arrays have been compared for equality.
+\end{itemize}
+\section{Cannonball}
+
+\subsection{Simulating a cannonball}
+
+In this exercise, you will simulate the trajectory of a cannonball in 2D until
+it hits the ground. In order to do so you have to solve Newton's equations of motion:
+
+\begin{align}
+    \label{eq:newton1}
+    \frac{\mathrm{d} \vx(t)}{\mathrm{d} t} = \vv(t)\\
+    \label{eq:newton2}
+    \frac{\mathrm{d} \vv(t)}{\mathrm{d} t} = \frac{\vF(t)}{m},
+\end{align}
+where $\vx(t)$ is the position as a function of time $t$, $m$ is the mass
+and $\vF(t)$ is the force as a function of time.
+
+At time $t=0$, the cannonball (mass $m=\SI{2.0}{\kilogram}$) has a position of
+$\vx(0) = \mathbf{0}$ and a velocity of $\vv(0) =
+\left(50,50\right)^\intercal \si{\metre\per\second}$.
+
+To simulate the cannonball, you will use the simple Euler scheme to propagate
+the position $\vx(t)$ and velocity $\vv(t)$ at time $t$ to the time $t+\Delta
+t$ ($\Delta t = \SI{0.1}{\second}$):
+  %
+  \begin{align}
+    \label{eq:euler:x}
+    \vx(t + \Delta t) &= \vx(t) + \vv(t) \Delta t\\
+    \label{eq:euler:v}
+    \vv(t + \Delta t) &= \vv(t)  + \frac{\vF(t)}{m} \Delta t
+  \end{align}
+  %
+The Euler scheme can be derived by a first order Taylor expansion of Newton's equations (Eq. \eqref{eq:newton1} and Eq. \eqref{eq:newton2}) in time
+yielding Eq. \eqref{eq:euler:x} and Eq. \eqref{eq:euler:v}.
+
+The force acting on the cannonball is gravity $\vF(t) = \left(0,-m
+g\right)^\intercal$, where $g=\SI{9.81}{\metre\per\second\squared}$ is the acceleration due
+to gravity.
+
+\begin{task}[3]
+  Write a Python program that simulates the cannonball until it hits the ground
+  ($\{\vx\}_1 \le 0$) and plot the trajectory.
+\end{task}
+
+\paragraph{Hints on preparing the report}
+  %
+  \begin{itemize}
+    \item Whenever you are asked to write a program, hand in the program source
+      code together with the report. 
+      In the report, you can put excerpts of the central parts of the code.
+    \item When a program should plot something, you should include the plot
+      into the report.
+    \item Explain what you see in the plot!
+  \end{itemize}
+  %
+
+\paragraph{Hints for this task}
+%
+\begin{itemize}
+  \item The program you start writing in this task will be successively
+    extended in the course of this worksheet. 
+    Therefore it pays off to invest some time to write this program cleanly!
+  \item Throughout the program, you will use NumPy for numerics and Matplotlib
+    for plotting, therefore import them at the beginning:
+    %
+    \begin{lstlisting}
+import numpy as np
+import matplotlib.pyplot as plt
+    \end{lstlisting}
+    %
+  \item Model the position and velocity of the cannonball as 2d NumPy arrays:
+    %
+    \begin{lstlisting}
+x = np.array([0.0, 0.0])
+    \end{lstlisting}
+    %
+  \item Implement a function \lstinline!force(mass, gravity)! that returns the
+    force (as a 2d NumPy array) acting on the cannonball.
+  \item Implement a function \lstinline!step_euler(x, v, dt, mass, gravity, f)! that
+    performs a single time-step \lstinline!dt! of the Euler scheme for
+    position \lstinline!x! and velocity \lstinline!v! and force \lstinline!f!.
+    The function returns the new position \lstinline!x!  and velocity
+    \lstinline!v!.
+  \item Beware that when you implement the Euler step, you should \emph{first}
+    update the position and then the velocity. 
+    If you do it the other way round, you have implemented the so-called
+    \emph{symplectic Euler algorithm}, which will be discussed later.
+  \item Remember that NumPy can do element-wise vector operations, so that in
+    many cases there is no need to loop over array elements. 
+    Furthermore, these element-wise operations are significantly faster than the
+    loops.  
+    For example, assuming that \lstinline!a! and \lstinline!b! are NumPy arrays
+    of the same shape, the following expressions are equivalent:
+    %
+    \begin{lstlisting}
+for i in range(N):
+    a[i] += b[i]
+# is the same as
+a += b
+    \end{lstlisting}
+    %
+  \item In the main program, implement a loop that calls the function
+    \lstinline!step_euler()! and stores the new position in the trajectory
+    until the cannonball hits the ground.
+  \item Store the positions at different times in the trajectory by appending
+    them to a list of values
+    %
+    \begin{lstlisting}
+# start with an empty list for the trajectory
+trajectory = []
+# append a new value of x to the trajectory
+trajectory.append(x.copy())
+    \end{lstlisting}
+    %
+    Note that when \lstinline!x! is a NumPy array, it is necessary to use
+    \lstinline!x.copy()! so that the list stores the values, not a reference to
+    the array.
+    If \lstinline!x! is a basic type (int, float, string), the call to
+    \lstinline!copy()! does not work.
+  \item When the loop ends, make the trajectory a NumPy array and then plot the
+    trajectory.
+    %
+    \begin{lstlisting}
+# transform the list into a NumPy array, which makes it easier 
+# to plot
+trajectory = np.array(np.trajectory)
+# Finally, plot the trajectory
+plt.plot(trajectory[:,0], trajectory[:,1], '-')
+# and show the graph
+plt.show()
+    \end{lstlisting}
+    %
+\end{itemize}
+
+\subsection{Influence of friction and wind}
+
+Now we will add the effect of aerodynamic friction and wind on the cannonball.
+We model Friction as a non-conservative force of the form $F_{\mathrm{fric}}(\vv) =
+-\gamma (\vv-\vv_0)$. 
+In our case, we assume that the friction coefficient is $\gamma = \SI{0.1}{\kilogram\per\second}$ and that
+the wind blows parallel to the ground with a wind speed $v_w$ ($\vv_0 =
+\left(v_w, 0\right)^\intercal \si{\metre\per\second}$).
+
+\begin{task}[3]
+  \begin{itemize}
+  \item Extend the program from the previous task to include the effects of
+    aerodynamic friction.
+  \item Create a plot that compares the following three trajectories:
+    \begin{itemize}
+      \item trajectory without friction
+      \item trajectory with friction but without wind ($v_w=0$)
+      \item trajectory with friction and with strong wind ($v_w=-50$)
+    \end{itemize}
+  \item Create a plot with trajectories at various wind speeds $v_w$.
+    In one of the trajectories, the ball should hit the ground close to
+    the initial position. Roughly what wind speed $v_w$ is needed for
+    this to happen?
+  \end{itemize}
+\end{task}
+
+\paragraph{Hints}
+\begin{itemize}
+  \item Please use a new file for this exercise. If you want to reuse some parts of
+        a previous exercise you can import it into the new file via, \textit{e.g.} \lstinline{import ex_2_1}
+  \item Extend the function \lstinline!force(mass, gravity)! such that it also
+    takes the velocity \lstinline!v!, the friction constant and the wind velocity as an argument.
+    This can be achieved by recycling the force function of the previous task within a new function
+    with the same name.\\
+    \textit{E.g.}:
+    \begin{lstlisting}
+import ex_2_1
+
+def force(mass, gravity, v, gamma, v_0):
+    return ex_2_1.force(mass, gravity) + ...
+    \end{lstlisting}
+  \item Wrap the main loop into a function so that you can create
+    several trajectories at different values of $\gamma$ and $v_w$ in a
+    single program.
+  \item You can add legends to the plots like this:
+    %
+    \begin{lstlisting}
+# make a plot with label "f(x)"
+plt.plot(x, y, label="f(x)")
+# make the labels visible
+plt.legend()
+# show the graph
+plt.show()
+    \end{lstlisting}
+    %
+\end{itemize}
+\clearpage
+
+\section{Solar system}
+
+The goal of this exercise is to simulate a part of the solar system (Sun,
+Venus, Earth, the Moon, Mars, and Jupiter) in two dimensions, and to test the behavior of
+different integrators.
+
+As in the previous tasks we want to solve Newton's equations (Eq.
+\eqref{eq:newton1} and Eq. \eqref{eq:newton2} of motion by numerical
+integration.
+
+In contrast to the previous task, you will now have to simulate several
+``particles'' (in this case planets and the sun, in the previous case a
+cannonball) that interact while there is no constant or frictional force.  
+In the following, $\vx_i$ denotes the position of the $i$th ``particle''
+(likewise, the velocity $\vv_i$ and acceleration $\va_i$).
+
+The behavior of the solar system is governed by the gravitational force between
+any two ``particles'':
+  %
+  \begin{equation}
+    \vF_{ij} = - G m_i m_j \frac{\vr_{ij}}{|\vr_{ij}|^3}
+  \end{equation}
+  %
+where $\vr_{ij} = \vx_i - \vx_j$ is the distance between particle $i$ and $j$,
+$G$ is the gravitational constant, and $m_i$ is the mass of particle $i$. 
+The total force on any single particle is:
+  %
+  \begin{equation}
+    \vF_i = \sum_{\substack{j=0\\i \ne j}}^N \vF_{ij}
+    \label{eq:gravitation}
+  \end{equation}
+  %
+
+\subsection{Simulating the solar system with the Euler scheme}
+
+The file \verb!solar_system.pkl.gz!, which can be downloaded from the lecture
+home page, contains the names of the ``particles'', the initial positions,
+velocities, masses  of a part of the solar system and the gravitational
+constant.
+The lengths are given in astronomical units \unit{au} (\ie the distance
+between earth and sun), the time in years, and the mass in units of the earth's
+mass.
+
+\begin{task}[4]
+  \begin{compactitem}
+      \item \emph{Make a copy} of the program from the cannonball exercise and
+        modify it to yield a program that simulates the solar system.
+      \item Simulate the solar system for one year with a time-step of $\Delta
+        t = 0.0001$.
+      \item Create a plot that shows the trajectories of the different
+        ``particles''.
+      \item Perform the simulation for different time-steps $\Delta t \in
+        \{0.0001, 0.001\}$ and plot the trajectory of the moon (particle number
+        2) in the rest frame of the earth (particle number 1). 
+        Are the trajectories satisfactory?
+      \item Modern simulations handle up to a few billion particles.  Assume
+        that you would have to do a simulation with a large number of
+        particles.
+        What part of the code would use the most computing time?
+  \end{compactitem}
+\end{task}
+
+\paragraph{Hints}
+\begin{itemize}
+  \item The file  \verb!solar_system.npz! can be read as follows:
+    \begin{lstlisting}
+import numpy as np
+# load initial positions and masses from file
+data = np.load('solar_system.npz')
+names = data['names']
+x_init = data['x_init']
+v_init = data['v_init']
+m = data['m']
+g = data['g']
+    \end{lstlisting}
+    %
+    Afterwards, \lstinline!names! is a list of names of the planets that can be
+    used in a plot to generate labels, \lstinline!x_init! and
+    \lstinline!v_init! are the initial positions and velocities, \lstinline!m!
+    are the masses and \lstinline!g! is the gravitational constant.
+  \item As there are $6$ ``particles'' now, the position vector \lstinline!x!
+    and the velocity vector \lstinline!v! are now $(2 \times 6)$-arrays, and
+    the mass \lstinline!m! is an array with $6$ elements.
+  \item The function you need to modify the most is the function
+    \lstinline!force(x_12, m_1, m_2, g)!, which is now required to compute the
+    gravitational forces according to equation \eqref{eq:gravitation}.
+  \item In order to compute the forces on all particles implement a function \lstinline!forces(x, m, g)! that
+        loops over the positions \lstinline!x! and returns the forces on all particles.
+  \item When computing the forces, keep in mind Newton's third law, \ie when
+    particle $j$ acts on particle $i$ with the force $\vF_{ij}$, particle $i$
+    acts on particle $j$ with the force $-\vF_{ij}$.
+  \item The function \lstinline!step_euler(x, v, dt, m, g, f)! using NumPy vector operations, it
+    should not be necessary to modify the function.
+\end{itemize}
+
+\subsection{Integrators}
+
+In the previous exercises, you have used the Euler scheme (\ie a
+simple mathematical method to solve a initial value problem) to solve
+Newton's equations of motion. It is the simplest integrator
+one could think of.  However, the errors of the scheme are pretty
+large, and also the algorithm is not \emph{symplectic}.
+
+\subsubsection{Symplectic Euler algorithm}
+
+The simplest symplectic integrator is the \emph{symplectic Euler
+  algorithm}:
+\begin{align}
+  \label{eq:euler}
+  \vv(t + \Delta t) &= \vv(t)  + \va(t) \Delta t\\
+  \vx(t + \Delta t) &= \vx(t) + \vv(t + \Delta t) \Delta t
+\end{align}
+where $\vx(t)$ are the positions and $\va(t) = \left( \frac{\vF(t)}{m}
+\right)$ is the acceleration at time $t$.  Compare the algorithm to
+the simple Euler scheme of equations \eqref{eq:euler:x} and
+\eqref{eq:euler:v}.
+
+\subsubsection{Verlet algorithm}
+
+Another symplectic integrator is the \emph{Verlet algorithm}, which has
+been derived in the lecture:
+\begin{align}
+\label{eq:verlet}
+\vx(t+\Delta t)&=2\,\vx(t)-\vx(t-\Delta t)+\va(t) \Delta
+t^2+\mathcal{O}\left(\Delta t^4\right)
+\end{align}
+
+\subsubsection{Velocity Verlet algorithm}
+
+An alternative to the Verlet algorithm is the \emph{Velocity Verlet
+algorithm}:
+\begin{align}
+\label{eq:vv:x}
+\vx(t+\Delta t) & = \vx(t)+\vv(t) \Delta t+\frac{\va(t)}{2}\Delta t^2+\mathcal{O}\left(\Delta t^4\right)\\
+\label{eq:vv:v}
+\vv(t+\Delta t) & = \vv(t)+\frac{\va(t)+\va(t+\Delta t)}{2}\Delta t+\mathcal{O}\left(\Delta t^4\right).
+\end{align}
+
+\begin{task}[3]
+  \begin{itemize} 
+  \item Derive the Velocity Verlet algorithm. To derive the position
+    update, use a Taylor expansion of $\vx(t+\Delta t)$ truncated
+    after second order. To derive the velocity update, Taylor-expand
+    $\vv(t+\Delta t)$ up to the second order. To obtain an expression
+    for $\mathrm{d}^2\vv(t)/\mathrm{d} t^2$, use a Taylor expansion for
+    $\mathrm{d} \vv(t+\Delta t)/\mathrm{d} t$ truncated after the first
+    order.
+  \item Rearranging the equations of the Velocity Verlet algorithm,
+    show that it is equivalent to the standard Verlet algorithm.
+    First express $\vx(t+\Delta t)$ using $\vx$, $\vv$ and $\va$ at
+    $(t+\Delta t)$.  in Equation~\eqref{eq:vv:x}. Then rearrange
+    Equation~\eqref{eq:vv:x} to express $\vx(t)$. Add the two equations
+    and then group velocity terms together.  Put all velocity terms on
+    one side of equation~\eqref{eq:vv:v} and use them to plug them into
+    your previous equation.
+  \end{itemize}
+\end{task}
+
+\subsubsection{Implementation}
+
+Even if you know the equations of the algorithms, this does not mean
+that it is immediately obvious how to implement them correctly and
+efficiently and how to use them in practice.
+
+For example, in the case of the Euler scheme (equations
+\eqref{eq:euler:x} and \eqref{eq:euler:v}), it is very simple to
+accidentally implement the symplectic Euler scheme instead.  The
+following is pseudo-code for a step of the Euler scheme:
+\begin{enumerate}
+\item $\vx \leftarrow \vx + \vv \Delta t$
+\item $\vv \leftarrow \vv + \va \Delta t$
+\end{enumerate}
+If you simply exchange the order of operations, this becomes the
+symplectic Euler algorithm.
+
+Another example for an algorithm that is tricky to use in a simulation
+is the Verlet algorithm.
+\begin{task}[1]
+  Study equation \eqref{eq:verlet}. Why is it difficult to implement a
+  simulation based on this equation in practice? What is missing?
+\end{task}
+
+Therefore, the Velocity Verlet algorithm is more commonly used in
+simulations.  Unfortunately, implementing equations \eqref{eq:vv:x} and
+\eqref{eq:vv:v} has its pitfalls, too.  Note that the algorithm requires
+both $\va(t)$ and $\va(t+\Delta t)$ in equation \eqref{eq:vv:v}.  As
+computing $\va(t)$ requires to compute the forces $\vF(t)$, this would
+make it necessary to compute the forces twice.  To avoid this, one can
+store not only the positions $\vx$ and velocities $\vv$ in a variable,
+but also the accelerations $\va$ and implement a time-step of the
+algorithm as follows:
+\begin{enumerate}
+\item Update positions as per equation \eqref{eq:vv:x}, using the value
+  of $\va$ stored in the previous time-step.
+\item Perform the first half of the velocity update of equation
+  \eqref{eq:vv:v}: $\vv \leftarrow \vv + \frac{\va}{2} \Delta t$
+\item Compute the new forces and update the acceleration: $\va
+  \leftarrow \frac{\vF}{m}$.
+\item Perform the second half of the velocity update with the new
+  acceleration $\va$.
+\end{enumerate}
+
+\begin{task}[3]
+  \begin{itemize}
+  \item Implement the symplectic Euler algorithm and the Velocity
+    Verlet algorithm in your simulation of the solar system.
+  \item Run the simulation with a time-step of $\Delta t=0.01$ for 1
+    year for the different integrators and plot the trajectory of the
+    moon in the rest frame of the earth.
+  \end{itemize}
+\end{task}
+
+\paragraph{Hint}
+If you have written the rest of the program cleanly, it should be
+enough to implement new functions \lstinline!step_eulersym(x,v,dt)!
+and \lstinline!step_vv(x,v,a,dt)! and to modify the main loop
+accordingly to call these functions to use a different integrator.
+
+\subsection{Long-term stability}
+
+An important property for Molecular Dynamics simulations is the
+\emph{long-term stability}.
+
+\begin{task}[3]
+  \begin{itemize}
+  \item During the simulation, measure the distance between earth and
+    moon in every time-step.
+  \item Run the simulation with a time-step of $\Delta t=0.01$ for 10
+    years for the different integrators and plot the distance between
+    earth and moon over time. Compare the results obtained with the
+    different integrators!
+  \end{itemize}
+\end{task}
+
+\end{document}
+
