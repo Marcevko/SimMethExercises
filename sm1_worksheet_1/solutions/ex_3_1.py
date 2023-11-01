@@ -1,6 +1,6 @@
 import logging
 import itertools
-from typing import Tuple
+from typing import Tuple, Callable
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -87,6 +87,7 @@ def run(
         dt: float, 
         masses: float,
         gravity: float, 
+        integrator: Callable,
     ) -> np.ndarray:
     """
     Simulates the system of planets of a given time-step-size for one year (1/dt steps).
@@ -99,14 +100,14 @@ def run(
     number_of_steps = int( 1 / dt )
 
     position_trajectories = np.zeros(
-            (number_of_steps, x_init.shape[0], x_init.shape[1]),
+            (number_of_steps, x0.shape[0], v0.shape[1]),
             dtype=np.float32,
         )
     
     x_past, v_past = x0.copy(), v0.copy()
 
     for step in range(number_of_steps):
-        x_t, v_t = step_euler(
+        x_t, v_t = integrator(
             x_past,
             v_past,
             dt,
@@ -146,6 +147,7 @@ if __name__ == "__main__":
             time_step,
             m,
             g,
+            step_euler,
         )
         position_trajectories_dict[time_step] = position_trajectory
     
