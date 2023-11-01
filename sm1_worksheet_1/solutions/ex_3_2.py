@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
         axs[integrator_index].set_title(f'{integrator} Algorithm')
 
-    fig.suptitle(f'Comparison of (non)-symplectic Euler Algorithm for dt={time_step}')        
+    fig.suptitle(f'Comparison of integrator algorithms for dt={time_step}')        
     fig.tight_layout()
     plt.savefig('plots/integrator_comparison.png', format='png', dpi=600)
     plt.show()

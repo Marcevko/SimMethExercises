@@ -88,6 +88,7 @@ def run(
         masses: float,
         gravity: float, 
         integrator: Callable,
+        number_of_years: int = 1,
     ) -> np.ndarray:
     """
     Simulates the system of planets of a given time-step-size for one year (1/dt steps).
@@ -97,7 +98,7 @@ def run(
     Returns:
 
     """
-    number_of_steps = int( 1 / dt )
+    number_of_steps = number_of_years * int( 1 / dt )
 
     position_trajectories = np.zeros(
             (number_of_steps, x0.shape[0], v0.shape[1]),
