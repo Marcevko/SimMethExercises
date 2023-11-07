@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 import ex_2_1
 
+
 def force(
         mass: float, 
         gravity: float,
@@ -21,6 +22,9 @@ def force(
         v: velocity of the particle
         gamma: friction parameter
         v_0: wind velocity
+
+    Returns:
+        force (np.ndarray): two-dimension force vector acting on particle
     """
     
     wind_friction = -gamma*( v - v_0 )
@@ -33,7 +37,8 @@ def run(
         mass: float, 
         gravity: float, 
         gamma: float, 
-        v_0: np.ndarray
+        v_0: np.ndarray,
+        no_friction: bool = False,
     ) -> np.ndarray:
     """
     Runs the simulation while-loop for a set of parameters.
@@ -55,17 +60,24 @@ def run(
     trajectory = [x_past.copy()]
 
     wind_vector = np.array([v_0, 0.0])
+    f = None
 
     running = True
     
     while running:
+        
+        if no_friction:
+            f = ex_2_1.force(mass, gravity)
+        else:
+            f = force(mass, gravity, v, gamma, v_0)
+
         x_t, v_t = ex_2_1.step_euler(
             x_past,
             v_past,
             dt,
             mass,
             gravity,
-            force(mass, gravity, v, gamma, wind_vector),
+            f,
         )
 
         if x_t[1] < 0.0:
@@ -89,15 +101,16 @@ if __name__ == "__main__":
         0.1,
     ]
     
-    # iwie ueberlegen wie ich an die Traj komme
-
-    # trajectory_no_friction = 
+    trajectory_no_friction = run(*static_args, 0.0, no_friction=True)
     trajectory_no_wind = run(*static_args, 0.0)
     trajectory_wind = run(*static_args, -50.0)
 
-    print(trajectory_wind)
-
+    plt.plot(trajectory_no_friction[:, 0], trajectory_no_friction[:, 1], label='no friction')
     plt.plot(trajectory_no_wind[:, 0], trajectory_no_wind[:, 1], label='no wind')
     plt.plot(trajectory_wind[:, 0], trajectory_wind[:, 1], label='wind')
     plt.legend()
+    plt.title('Particle trajectories for different friction settings')
+    plt.xlabel('x-coordinate')
+    plt.ylabel('y-coordinate')
+    plt.savefig('plots/particle_trajectories_friction_comparison.png', format='png', dpi=600)
     plt.show()

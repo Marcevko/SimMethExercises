@@ -1,9 +1,11 @@
-import logging
-import itertools
-from typing import Tuple, Callable
+#!/usr/bin/env python3
 
 import numpy as np
 import matplotlib.pyplot as plt
+
+import logging
+import itertools
+from typing import Tuple, Callable
 
 import scipy.constants
 
@@ -70,13 +72,28 @@ def step_euler(
         x: np.ndarray, 
         v: np.ndarray,
         dt: float, 
-        masses: float,
+        masses: np.ndarray,
         gravity: float, 
-        forces: float,
+        force: None,
     ) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Computes one integration step with the non-symplectic Euler-Algorithm.
+
+    Args:
+        x: Two-dimensional position vector for all planets -> (N, 2, )
+        y: Two-dimensional velocity vector for all planets -> (N, 2, )
+        dt: time-step size
+        mass: masses of all planets -> (N, )
+        g: gravitational force constant
+        forces: None, not used
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray] -> [(N, 2), (N, 2)]: updated positions and velocities of all planets
+    """
+    a = forces(x, masses, gravity) / masses
     
     x += v * dt
-    v += (dt / masses) * forces
+    v += a * dt
 
     return x, v
 
@@ -85,18 +102,25 @@ def run(
         x0: np.ndarray, 
         v0: np.ndarray,
         dt: float, 
-        masses: float,
+        masses: np.ndarray,
         gravity: float, 
         integrator: Callable,
         number_of_years: int = 1,
     ) -> np.ndarray:
     """
-    Simulates the system of planets of a given time-step-size for one year (1/dt steps).
+    Simulates the system of planets of a given time-step-size for number_of_years (N/dt steps).
 
     Args:
-
+        x0: initial set of planet positions -> (N, 2, )
+        v0: initial set of planet velocities -> (N, 2, )
+        dt: time-step size
+        masses: masses of all planets -> (N, )
+        gravity: gravitational force constant
+        integrator: integration algorithm to be used for simulation
+        number_of_years: Duration of simulation in years. Defaults to 1.
+        
     Returns:
-
+        np.ndarray: array of position trajectories of all planets
     """
     number_of_steps = number_of_years * int( 1 / dt )
 
@@ -128,9 +152,8 @@ if __name__ == "__main__":
     try:
         solar_system_data = np.load('files/solar_system.npz')
     except Exception as e:
-        logging.warning(e)
-        # implement general way of loading the path
-        # os.chdir oder sys.path.append
+        raise(e)
+        
         
     names = solar_system_data['names']
     x_init = solar_system_data['x_init']
@@ -138,7 +161,7 @@ if __name__ == "__main__":
     m = solar_system_data['m']
     g = solar_system_data['g']
 
-    time_step_list = [0.0001, 0.000075, 0.00005, 0.000025, 0.00001]
+    time_step_list = [0.001, 0.00075, 0.0005, 0.00025, 0.0001]
     position_trajectories_dict = dict()
 
     for time_step in time_step_list:
@@ -155,15 +178,15 @@ if __name__ == "__main__":
     # generate plot with all planets for largest time-step
     for planet_index, planet in enumerate(names):
         plt.plot(
-            position_trajectories_dict[time_step_list[0]][:, 0, planet_index],
-            position_trajectories_dict[time_step_list[0]][:, 1, planet_index], 
+            position_trajectories_dict[time_step_list[-1]][:, 0, planet_index],
+            position_trajectories_dict[time_step_list[-1]][:, 1, planet_index], 
             lw=3.5, 
             alpha=0.7, 
             label=f'{planet}'
             )
     plt.xlabel(f'x in AU')
     plt.ylabel(f'y in AU')
-    plt.title(f'Planet trajectories for dt={time_step_list[0]}')
+    plt.title(f'Planet trajectories for dt={time_step_list[-1]}')
     plt.legend(loc=(0.60, 0.05))
     plt.grid()
     plt.savefig('plots/trajectories_all_planets.png', format='png', dpi=600)

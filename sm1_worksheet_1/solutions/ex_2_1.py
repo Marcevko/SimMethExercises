@@ -1,17 +1,27 @@
 #!/usr/bin/env python3
 
-from typing import Tuple
 import numpy as np
 import matplotlib.pyplot as plt
+
+from typing import Tuple, Callable
+
 
 def force(
         mass: float, 
         gravity: float,
     ) -> np.ndarray:
     """
-    Returns the weight force dependent on the mass m and the gravitational accelaration g. 
+    Computes the gravitational force acting on the particle.
+
+    Args:
+        mass: mass of the particle
+        gravity: gravitational accleration constant
+
+    Returns:
+        force (np.ndarray): two-dimension force vector acting on particle
     """
     return np.array([0.0, -1 * mass * gravity])
+
 
 def step_euler(
         x: np.ndarray, 
@@ -19,17 +29,31 @@ def step_euler(
         dt: float, 
         mass: float,
         gravity: float, 
-        f: float,
+        f: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Computes one integration step with the non-symplectic Euler-Algorithm.
+
+    Args:
+        x: Two-dimensional position vector of particle -> (2, )
+        y: Two-dimensional velocity vector of particle -> (2, )
+        dt: time-step size
+        mass: mass of particle
+        gravity: gravitational force constant
+        force: force-vector acting on particle
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray] -> [(N, 2), (N, 2)]: updated positions and velocities of all planets
+    """
+    a = f/ mass
     
     x += v * dt
-    v += (dt / mass) * f
+    v += a * dt
 
     return x, v
 
 
 if __name__ == "__main__":
-    
     # init starting parameters
     x0, v0 = np.array([0.0, 0.0]), np.array([50.0, 50.0])
     m0 = 2.0
@@ -60,4 +84,8 @@ if __name__ == "__main__":
 
     plt.plot(trajectory[:, 0], trajectory[:, 1], label='numeric simulation')
     plt.legend()
+    plt.title(f'Particle trajectory without wind.')
+    plt.xlabel('x-coordinate')
+    plt.ylabel('y-coordinate')
+    plt.savefig('plots/particle_trajectory_no_wind.png', format='png', dpi=600)
     plt.show()

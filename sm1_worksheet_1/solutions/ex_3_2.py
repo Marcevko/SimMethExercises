@@ -1,12 +1,34 @@
+#!/usr/bin/env python3
+
 import numpy as np
 import matplotlib.pyplot as plt
+
 import logging
+from typing import Tuple
 
 import ex_3_1
 
-def step_symplectic_euler(x, v, dt, mass, g, forces):
+def step_symplectic_euler(
+        x: np.ndarray,
+        v: np.ndarray, 
+        dt: float, 
+        mass: np.ndarray, 
+        g: float, 
+        forces: None
+    ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    write helper
+    Computes one integration step with the symplectic Euler-Algorithm.
+
+    Args:
+        x: Two-dimensional position vector for all planets -> (N, 2, )
+        y: Two-dimensional velocity vector for all planets -> (N, 2, )
+        dt: time-step size
+        mass: masses of all planets -> (N, )
+        g: gravitational force constant
+        forces: None, not used
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray] -> [(N, 2), (N, 2)]: updated positions and velocities of all planets
     """
     a = ex_3_1.forces(x, mass, g) / mass
     
@@ -15,8 +37,28 @@ def step_symplectic_euler(x, v, dt, mass, g, forces):
 
     return x, v
 
-def step_velocity_verlet(x, v, dt, mass, g, force_old):
-    
+def step_velocity_verlet(
+        x: np.ndarray,
+        v: np.ndarray, 
+        dt: float, 
+        mass: np.ndarray, 
+        g: float,
+        force_old: None
+    ):
+    """
+    Computes one integration step with the symplectic Velocity-Verlet-Algorithm.
+
+    Args:
+        x: Two-dimensional position vector for all planets -> (N, 2, )
+        y: Two-dimensional velocity vector for all planets -> (N, 2, )
+        dt: time-step size
+        mass: masses of all planets -> (N, )
+        g: gravitational force constant
+        force_old: None, not used
+
+    Returns:
+        updated positions and velocities of all planets: Tuple[np.ndarray, np.ndarray] -> [(N, 2), (N, 2)]
+    """
     a = ex_3_1.forces(x, mass, g) / mass
     
     x += v * dt + 0.5 * a * dt**2
