@@ -27,7 +27,7 @@ def force(
         force (np.ndarray): two-dimension force vector acting on particle
     """
     
-    wind_friction = -gamma*( v - v_0 )
+    wind_friction = -gamma * ( v - v_0 )
     return ex_2_1.force(mass, gravity) + wind_friction
 
 def run(
@@ -69,7 +69,7 @@ def run(
         if no_friction:
             f = ex_2_1.force(mass, gravity)
         else:
-            f = force(mass, gravity, v, gamma, v_0)
+            f = force(mass, gravity, v, gamma, wind_vector)
 
         x_t, v_t = ex_2_1.step_euler(
             x_past,
@@ -100,17 +100,29 @@ if __name__ == "__main__":
         9.81,
         0.1,
     ]
-    
-    trajectory_no_friction = run(*static_args, 0.0, no_friction=True)
-    trajectory_no_wind = run(*static_args, 0.0)
-    trajectory_wind = run(*static_args, -50.0)
 
-    plt.plot(trajectory_no_friction[:, 0], trajectory_no_friction[:, 1], label='no friction')
-    plt.plot(trajectory_no_wind[:, 0], trajectory_no_wind[:, 1], label='no wind')
-    plt.plot(trajectory_wind[:, 0], trajectory_wind[:, 1], label='wind')
-    plt.legend()
+    trajectories_dict = {}
+    
+    trajectories_dict['no_friction'] = run(*static_args, 0.0, no_friction=True)
+    
+    for v0 in [0.0, -50.0, -100.0, -150.0, -196.0]:
+        trajectories_dict[f'v0 = {v0} m/s'] = run(*static_args, v0)
+
+    for keyword in ['no_friction', 'v0 = 0.0 m/s', 'v0 = -50.0 m/s']:
+        plt.plot(trajectories_dict[keyword][:, 0], trajectories_dict[keyword][:, 1], label=keyword)
+    plt.legend(loc='upper right')
     plt.title('Particle trajectories for different friction settings')
-    plt.xlabel('x-coordinate')
-    plt.ylabel('y-coordinate')
-    plt.savefig('plots/particle_trajectories_friction_comparison.png', format='png', dpi=600)
+    plt.xlabel('x in m')
+    plt.ylabel('y in m')
+    plt.savefig('plots/particle_trajectories_wind_comparison.png', format='png', dpi=600)
+    plt.show()
+
+    for keyword in list(trajectories_dict.keys())[1:]:
+        plt.plot(trajectories_dict[keyword][:, 0], trajectories_dict[keyword][:, 1], label=keyword)
+
+    plt.legend(loc='upper right')
+    plt.title('Particle trajectories for different wind strengths')
+    plt.xlabel('x in m')
+    plt.ylabel('y in m')
+    plt.savefig('plots/wind_strength_search.png', format='png', dpi=600)
     plt.show()

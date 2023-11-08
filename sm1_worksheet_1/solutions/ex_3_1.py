@@ -31,7 +31,7 @@ def force(
     return -g * m_i * m_j * r_ij / (r_ij_abs)**3
 
 
-def forces(
+def forces_(
         x: np.ndarray,
         masses: np.ndarray,
         g: float,
@@ -55,7 +55,7 @@ def forces(
                 np.arange(0, x.shape[1], 1, dtype=int), 2
             )
         )
-
+    
     for pair in particle_pairings:
         first_index, second_index = pair[0], pair[1]
         pair_distance_vector = x[:, first_index] - x[:, second_index]
@@ -66,6 +66,35 @@ def forces(
         force_array[:, second_index] += (-1) * pair_force
 
     return force_array
+
+
+def forces(
+        x: np.ndarray,
+        masses: np.ndarray,
+        g: float,
+    ) -> np.ndarray:
+    """
+    Computes the commulative acting forces on all planets as the sum of all smaller forces from 'force'.    
+    
+    Args:
+        x: Array of position arrays of all 6 particles of shape (2, 6)
+        masses: Array of particles masses of shape (6, )
+        g: gravitational constant
+
+    Returns:
+        np.ndarray (2, 6): array of all cummulative forces acting on all 6 particles.
+    """
+    particles = len(masses)
+    forces = np.zeros((2, particles))
+    for i in range(particles):
+        for j in range(i+1, particles):
+            rij = x[:, i] - x[:, j]
+            m_i = masses[i]
+            m_j = masses[j]
+            forces[:, i] += force(rij, m_i, m_j, g)
+            forces[:, j] -= force(rij, m_i, m_j, g)
+
+    return forces
 
 
 def step_euler(
@@ -125,11 +154,12 @@ def run(
     number_of_steps = number_of_years * int( 1 / dt )
 
     position_trajectories = np.zeros(
-            (number_of_steps, x0.shape[0], v0.shape[1]),
+            (number_of_steps + 1, x0.shape[0], v0.shape[1]),
             dtype=np.float32,
         )
     
     x_past, v_past = x0.copy(), v0.copy()
+    position_trajectories[0] = x_past
 
     for step in range(number_of_steps):
         x_t, v_t = integrator(
@@ -141,7 +171,7 @@ def run(
             forces(x_past, masses, gravity),
         )
 
-        position_trajectories[step] = x_t
+        position_trajectories[step + 1] = x_t
         x_past, v_past = x_t.copy(), v_t.copy()
 
     return position_trajectories
@@ -181,7 +211,7 @@ if __name__ == "__main__":
             position_trajectories_dict[time_step_list[-1]][:, 0, planet_index],
             position_trajectories_dict[time_step_list[-1]][:, 1, planet_index], 
             lw=3.5, 
-            alpha=0.7, 
+            alpha=0.7,
             label=f'{planet}'
             )
     plt.xlabel(f'x in AU')

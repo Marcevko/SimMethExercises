@@ -64,3 +64,23 @@ if __name__ == "__main__":
     fig.tight_layout()
     plt.savefig('plots/integrator_distance_comparison.png', format='png', dpi=600)
     plt.show()
+
+    for integrator_index, (integrator, trajectory) in enumerate(position_trajectories_dict.items()): 
+        moon_trajectory_in_earth_frame = trajectory[:, :, 2] - trajectory[:, :, 1]
+        
+        distance_trajectory = np.linalg.norm(moon_trajectory_in_earth_frame, axis=1)
+
+        plt.plot(
+            distance_trajectory, 
+            alpha=0.85, 
+            lw=3,
+            label=f'{integrator}',
+        )
+        plt.title(f'Moon-Earth distances for different integrators')
+        plt.legend(loc='upper left')
+        plt.xlabel(f'integration steps')
+        plt.ylabel(f'Distance in AU')
+
+    plt.savefig('plots/integrator_distances_comparison_one_plot.png', format='png', dpi=600)
+    plt.show()    
+        

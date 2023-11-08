@@ -90,13 +90,16 @@ if __name__ == "__main__":
         'non-symplectic Euler': ex_3_1.run(x_init, v_init, time_step, m, g, ex_3_1.step_euler),
         'symplectic Euler': ex_3_1.run(x_init, v_init, time_step, m, g, step_symplectic_euler),
         'velocity-verlet': ex_3_1.run(x_init, v_init, time_step, m, g, step_velocity_verlet),
-    }
+    }   
+    
+    lunar_distance_factor = 0.00257
 
     # generate comparison plot
-    fig, axs = plt.subplots(1, 3, figsize=(18.0, 5.0))
+    fig, axs = plt.subplots(3, 1, figsize=(6.0, 14.0))
 
     for integrator_index, (integrator, trajectory) in enumerate(position_trajectories_dict.items()): 
         moon_trajectory_in_earth_frame = trajectory[:, :, 2] - trajectory[:, :, 1]
+        moon_trajectory_in_earth_frame /= lunar_distance_factor
         axs[integrator_index].plot(
             moon_trajectory_in_earth_frame[:, 0],
             moon_trajectory_in_earth_frame[:, 1],
@@ -106,14 +109,19 @@ if __name__ == "__main__":
             color='cornflowerblue',
         )
         axs[integrator_index].plot([0], [0], 'o', label='Earth', color='mediumseagreen')
+        axs[integrator_index].set_ylabel(f'y in Lunar Distances')
         
-        if integrator_index == 2:
+
+        if integrator_index == 0:
             axs[integrator_index].legend(loc='upper left')
+
+        if integrator_index == 2:
+            axs[integrator_index].set_xlabel(f'x in Lunar Distances')
 
         axs[integrator_index].set_title(f'{integrator} Algorithm')
 
-    fig.suptitle(f'Comparison of integrator algorithms for dt={time_step}')        
-    fig.tight_layout()
+    fig.suptitle(f'Comparison of integrator algorithms for dt={time_step}', y=0.99)        
+    fig.tight_layout(w_pad=2.0)
     plt.savefig('plots/integrator_comparison.png', format='png', dpi=600)
     plt.show()
 
