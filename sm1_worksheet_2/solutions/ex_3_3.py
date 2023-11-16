@@ -1,3 +1,20 @@
+"""
+Notes for interpretation of the plots:
+    - The third particle in the BOUNCE-less sim doesn't behave like a billiard-ball>
+    - Explanation: The attractive force of LJ changes the trajectory of the orange AND red balls. The do not hit each other (like hard spheres)
+        but also pull each other (when they have small distances).
+    - If two particles hit each other directly, then they behave similar to hard spheres. If the fly by another particle in close distance, they interact
+        with the attractive part of the LJ-force.
+
+General Notes:
+    - BOUNCE can be tuned with the BOUNCE-parameter (bool).
+    - The name of the data-file gets tuned with BOUNCE-parameter.
+
+Questions:
+    - What is meant with "Make sure all particles are inside the box at init". 
+    --> Maybe it is has something to do with the change of one particle position that we are supposed to make
+"""
+
 import numpy as np
 
 from typing import Tuple
@@ -75,7 +92,7 @@ if __name__ == "__main__":
     T_MAX = 20.0
     N_TIME_STEPS = int(T_MAX / DT)
     BOX_L = 15.0
-    BOUNCE = True
+    BOUNCE = False
 
     # running variables
     time = 0.0
