@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
-
 import numpy as np
+
+from typing import Tuple
 
 import ex_3_2
 
@@ -54,11 +54,28 @@ def step_vv(x: np.ndarray, v: np.ndarray, f: np.ndarray, dt: float):
     return x, v, f
 
 
+def apply_bounce_back(x: np.ndarray, v: np.ndarray, box_l: float) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Write helper
+    """
+    for atom_index, atom_position in enumerate(x):
+        # change the velocities dependent on the side they bounce against
+        if atom_position[0] < 0.0 or atom_position[0] > box_l:
+            v[atom_index, 0] = -v[atom_index, 0]
+
+        if atom_position[1] < 0.0 or atom_position[1] > box_l:
+            v[atom_index, 1] = -v[atom_index, 1]
+    
+    return x, v
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     DT = 0.01
     T_MAX = 20.0
     N_TIME_STEPS = int(T_MAX / DT)
+    BOX_L = 15.0
+    BOUNCE = True
 
     # running variables
     time = 0.0
@@ -86,13 +103,15 @@ if __name__ == "__main__":
     positions = np.full((N_TIME_STEPS, 2, N_PART), np.nan)
     energies = np.full((N_TIME_STEPS), np.nan)
 
+    vtf_filename = 'sm1_worksheet_2/plots/ljbillards_bounce.vtf' if BOUNCE else 'sm1_worksheet_2/plots/ljbillards.vtf'
 
-    # main loop
-    with open('ljbillards.vtf', 'w') as vtffile:
+    with open(vtf_filename, 'w') as vtffile:
         # write the structure of the system into the file:
         # N particles ("atoms") with a radius of 0.5
         vtffile.write(f'atom 0:{N_PART - 1} radius 0.5\n')
         for i in range(N_TIME_STEPS):
+            if BOUNCE:
+                x, v = apply_bounce_back(x, v, BOX_L)
             x, v, f = step_vv(x, v, f, DT)
             time += DT
 
