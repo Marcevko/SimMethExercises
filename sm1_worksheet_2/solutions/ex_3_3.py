@@ -13,6 +13,7 @@ General Notes:
 Questions:
     - What is meant with "Make sure all particles are inside the box at init". 
     --> Maybe it is has something to do with the change of one particle position that we are supposed to make
+    - Why should I change the position of one of the particles. They all hit each other (in vanilla config)
 """
 
 import numpy as np
@@ -75,13 +76,17 @@ def apply_bounce_back(x: np.ndarray, v: np.ndarray, box_l: float) -> Tuple[np.nd
     """
     Write helper
     """
-    for atom_index, atom_position in enumerate(x):
+    # print(x.shape)
+    for atom_index, atom_position in enumerate(x.T):
         # change the velocities dependent on the side they bounce against
-        if atom_position[0] < 0.0 or atom_position[0] > box_l:
-            v[atom_index, 0] = -v[atom_index, 0]
+        # if atom_index == 0:
+        #     print(f"{atom_index}: {atom_position}")
 
-        if atom_position[1] < 0.0 or atom_position[1] > box_l:
-            v[atom_index, 1] = -v[atom_index, 1]
+        if atom_position[0] <= 0.0 or atom_position[0] >= box_l:
+            v[0, atom_index] = -v[0, atom_index]
+
+        if atom_position[1] <= 0.0 or atom_position[1] >= box_l:
+            v[1, atom_index] = -v[1, atom_index]
     
     return x, v
 
@@ -92,7 +97,7 @@ if __name__ == "__main__":
     T_MAX = 20.0
     N_TIME_STEPS = int(T_MAX / DT)
     BOX_L = 15.0
-    BOUNCE = False
+    BOUNCE = True
 
     # running variables
     time = 0.0
@@ -104,6 +109,10 @@ if __name__ == "__main__":
     x[:, 2] = [8.0, 1.8]
     x[:, 3] = [10.9, 0.3]
     x[:, 4] = [12.0, 7.0]
+
+    # shift positions by one to ensure all particles are inside box at init
+    x += 1.0
+    print(x, x.shape)
 
     # particle velocities
     v = np.zeros((2, 5))
@@ -128,6 +137,7 @@ if __name__ == "__main__":
         vtffile.write(f'atom 0:{N_PART - 1} radius 0.5\n')
         for i in range(N_TIME_STEPS):
             if BOUNCE:
+                print(x, x.shape)
                 x, v = apply_bounce_back(x, v, BOX_L)
             x, v, f = step_vv(x, v, f, DT)
             time += DT
@@ -150,6 +160,8 @@ if __name__ == "__main__":
     ax1.set_aspect('equal')
     ax1.set_xlabel('x position')
     ax1.set_ylabel('y position')
+    ax1.set_xlim([0.0, 15.0])
+    ax1.set_ylim([0.0, 15.0])
     ax1.legend()
 
     ax2.set_xlabel("Time step")

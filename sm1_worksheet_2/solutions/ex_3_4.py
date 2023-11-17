@@ -5,6 +5,8 @@ Make notes here:
 Still TO-DO:
 
     - Take a look at VMD and take the screenshots
+    - Change force function (search for smallest distance between virtual images of particles for LJ potential beyond boundary)
+    - Change potentials in forces to cutoff
 """
 
 import numpy as np
@@ -31,7 +33,7 @@ def lj_force(r_ij: np.ndarray, r_cutoff: float) -> np.ndarray:
     vector_norm = np.linalg.norm(r_ij)
     return ex_3_2.lj_force(r_ij) if vector_norm <= r_cutoff else np.zeros(len(r_ij))
 
-
+# This function has to be changed. The LJ pot has to interact with the virtual image of all particles on the boundaries
 def forces(x: np.ndarray) -> np.ndarray:
     """Compute and return the forces acting onto the particles,
     depending on the positions x."""
@@ -80,7 +82,7 @@ def step_vv(x: np.ndarray, v: np.ndarray, f: np.ndarray, dt: float):
 
     return x, v, f
 
-
+# iteriert falsche axis, siehe 3.3
 def apply_pbc(x: np.ndarray, v: np.ndarray, box_l: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Write helper
@@ -100,7 +102,7 @@ def apply_pbc(x: np.ndarray, v: np.ndarray, box_l: float) -> Tuple[np.ndarray, n
 def test_pbc():
     BOX_L = 10.0
     DT = 0.01
-    T_MAX = 4.0
+    T_MAX = 20.0
     N_TIME_STEPS = int(T_MAX / DT)
 
     x = np.zeros((2, 2))
@@ -222,6 +224,8 @@ if __name__ == "__main__":
     # ax2.plot(energies)
     # ax2.set_title('Total energy')
     # plt.show()
+
+    test_pbc()
 
     distance_vector = np.zeros((1000, 2))
     distance_vector[:, 0] = np.linspace(0.85, 3.0, 1000)
