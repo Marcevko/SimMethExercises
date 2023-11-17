@@ -5,6 +5,10 @@ Make notes here:
 Still TO-DO:
 
     - Take a look at VMD and take the screenshots
+    - Change force function (search for smallest distance between virtual images of particles for LJ potential beyond boundary)
+    - Change potentials in forces to cutoff
+
+PROBLEM: Code is written only for cubic/quadratic boxes with only one box_l parameter instead of all dimensions
 """
 
 import numpy as np
@@ -20,8 +24,8 @@ def lj_potential(r_ij: np.ndarray, r_cutoff: float) -> float:
     write helper
     """
     vector_norm = np.linalg.norm(r_ij)
-    cutoff_potential_height = ex_3_2.lj_potential(np.array([r_cutoff, 0.0]))
-    return 4 * ( (1 / vector_norm**12) - (1 / vector_norm**6) ) - cutoff_potential_height if vector_norm <= r_cutoff else 0.0
+    shift_height = ex_3_2.lj_potential(np.array([r_cutoff, 0.0]))
+    return 4 * ( (1 / vector_norm**12) - (1 / vector_norm**6) ) - shift_height if vector_norm <= r_cutoff else 0.0
 
 
 def lj_force(r_ij: np.ndarray, r_cutoff: float) -> np.ndarray:
@@ -32,22 +36,24 @@ def lj_force(r_ij: np.ndarray, r_cutoff: float) -> np.ndarray:
     return ex_3_2.lj_force(r_ij) if vector_norm <= r_cutoff else np.zeros(len(r_ij))
 
 
-def forces(x: np.ndarray) -> np.ndarray:
+def forces(x: np.ndarray, r_cutoff: float, box: np.ndarray) -> np.ndarray:
     """Compute and return the forces acting onto the particles,
     depending on the positions x."""
     N = x.shape[1]
     f = np.zeros_like(x)
     for i in range(1, N):
         for j in range(i):
-            # distance vector
-            r_ij = x[:, j] - x[:, i]
-            f_ij = ex_3_2.lj_force(r_ij)
+            # distance vector in minimal image convention
+            distance = x[:, j] - x[:, i]
+            r_ij = distance - box * np.round( distance / box)
+            f_ij = lj_force(r_ij, r_cutoff)
+            # f_ij = ex_3_2.lj_force(r_ij)
             f[:, i] -= f_ij
             f[:, j] += f_ij
     return f
 
 
-def total_energy(x: np.ndarray, v: np.ndarray) -> np.ndarray:
+def total_energy(x: np.ndarray, v: np.ndarray, r_cuttoff: float, box: float) -> np.ndarray:
     """Compute and return the total energy of the system with the
     particles at positions x and velocities v."""
     N = x.shape[1]
@@ -56,23 +62,25 @@ def total_energy(x: np.ndarray, v: np.ndarray) -> np.ndarray:
     # sum up potential energies
     for i in range(1, N):
         for j in range(i):
-            # distance vector
-            r_ij = x[:, j] - x[:, i]
-            E_pot += ex_3_2.lj_potential(r_ij)
+            # distance vector in minimal image convention
+            distance = x[:, j] - x[:, i]
+            r_ij = distance - box * np.round( distance / box)
+            E_pot += lj_potential(r_ij, r_cuttoff)
+            # E_pot += ex_3_2.lj_potential(r_ij)
     # sum up kinetic energy
     for i in range(N):
         E_kin += 0.5 * np.dot(v[:, i], v[:, i])
     return E_pot + E_kin
 
 
-def step_vv(x: np.ndarray, v: np.ndarray, f: np.ndarray, dt: float):
+def step_vv(x: np.ndarray, v: np.ndarray, f: np.ndarray, dt: float, r_cuttof: float, box: np.ndarray):
     # update positions
     x += v * dt + 0.5 * f * dt * dt
     # half update of the velocity
     v += 0.5 * f * dt
 
     # compute new forces
-    f = forces(x)
+    f = forces(x, r_cuttof, box)
     # we assume that all particles have a mass of unity
 
     # second half update of the velocity
@@ -80,19 +88,20 @@ def step_vv(x: np.ndarray, v: np.ndarray, f: np.ndarray, dt: float):
 
     return x, v, f
 
-
-def apply_pbc(x: np.ndarray, v: np.ndarray, box_l: float) -> Tuple[np.ndarray, np.ndarray]:
+# iteriert falsche axis, siehe 3.3
+def apply_pbc(x: np.ndarray, v: np.ndarray, box: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Write helper
     """
-    for atom_position in x:
-        boundary_passed = atom_position // box_l
+    for atom_position in x.T:
+        print(atom_position)
+        boundary_passed = atom_position // box
         
         if boundary_passed[0] != 0:
-            atom_position[0] -= boundary_passed[0] * box_l 
+            atom_position[0] -= boundary_passed[0] * box[0]
 
         if boundary_passed[1] != 0:
-            atom_position[1] -= boundary_passed[1] * box_l 
+            atom_position[1] -= boundary_passed[1] * box[1] 
     
     return x, v
 
@@ -100,8 +109,11 @@ def apply_pbc(x: np.ndarray, v: np.ndarray, box_l: float) -> Tuple[np.ndarray, n
 def test_pbc():
     BOX_L = 10.0
     DT = 0.01
-    T_MAX = 4.0
+    T_MAX = 20.0
     N_TIME_STEPS = int(T_MAX / DT)
+
+    BOX = np.array([BOX_L, BOX_L])
+    R_CUT = 2.5
 
     x = np.zeros((2, 2))
     x[:, 0] = [3.9, 3.0]
@@ -114,7 +126,7 @@ def test_pbc():
     # running variables
     time = 0.0
 
-    f = forces(x)
+    f = forces(x, R_CUT, BOX)
 
     N_PART = x.shape[1]
 
@@ -123,12 +135,12 @@ def test_pbc():
 
 
     for i in range(N_TIME_STEPS):
-        x, v = apply_pbc(x, v, BOX_L)
-        x, v, f = step_vv(x, v, f, DT)
+        x, v = apply_pbc(x, v, BOX)
+        x, v, f = step_vv(x, v, f, DT, R_CUT, BOX)
         time += DT
 
         positions[i, :2] = x
-        energies[i] = total_energy(x, v)
+        energies[i] = total_energy(x, v, R_CUT, BOX)
 
     traj = np.array(positions)
 
@@ -222,6 +234,8 @@ if __name__ == "__main__":
     # ax2.plot(energies)
     # ax2.set_title('Total energy')
     # plt.show()
+
+    test_pbc()
 
     distance_vector = np.zeros((1000, 2))
     distance_vector[:, 0] = np.linspace(0.85, 3.0, 1000)
