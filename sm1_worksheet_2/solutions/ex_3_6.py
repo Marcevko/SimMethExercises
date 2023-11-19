@@ -1,12 +1,27 @@
 #!/usr/bin/env python3
+"""
+Notes on the exercise:
 
-import typing
+    - The copy of the particles is returned, so that the maximal distance between the new (integrated) positions
+        and the previous positions can be estimated (to be able to decide whether Verlet update is necessary).
+
+TODO:
+    - in der 3.4 die funktion in minimal_image_vector umbennenen
+    - main umschreiben, sodass ich ueber skin values iterieren kann und die runtime plots erstellen kann
+    - Zaehlen wie haeufig die liste geupdated wurde (in die plots einarbeiten)        
+    - PBC are missing in VV I think
+    - Iwas stimmt mit der Intergration oder so nicht. Muss mir das ganze noch ein mal ansehen.
+"""
+from itertools import count
 
 import numpy as np
 import scipy.linalg
 
-import ex_3_2
 import ex_3_4
+import ex_3_5
+
+global update_counter
+update_counter: int = 0
 
 
 def forces(x: np.ndarray, r_cut: float, box: np.ndarray, verlet_list: np.ndarray) -> np.ndarray:
@@ -23,7 +38,7 @@ def forces(x: np.ndarray, r_cut: float, box: np.ndarray, verlet_list: np.ndarray
     return f
 
 
-def total_energy(x: np.ndarray, v: np.ndarray, r_cut: float, shift: float, box: np.ndarray, verlet_list: np.ndarray) -> float:
+def total_energy(x: np.ndarray, v: np.ndarray, r_cut: float, box: np.ndarray, verlet_list: np.ndarray) -> float:
     """Compute and return the total energy of the system with the
     particles at positions x and velocities v."""
     N = x.shape[1]
@@ -33,7 +48,7 @@ def total_energy(x: np.ndarray, v: np.ndarray, r_cut: float, shift: float, box: 
     for pair in verlet_list:
         # distance vector
         r_ij = ex_3_4.minimum_image_vector(x[:, pair[0]], x[:, pair[1]], box)
-        E_pot += ex_3_4.lj_potential(r_ij, r_cut, shift)
+        E_pot += ex_3_4.lj_potential(r_ij, r_cut)
     # sum up kinetic energy
     for i in range(N):
         E_kin += 0.5 * np.dot(v[:, i], v[:, i])
@@ -48,17 +63,23 @@ def get_verlet_list(x: np.ndarray, r_cut: float, skin: float, box: np.ndarray) -
     verlet_list = []
 
     # TODO: YOUR IMPLEMENTATION OF VERLET LISTS GOES HERE...
+    for first_particle in range(N):
+        for second_particle in range(first_particle + 1, N):
+            r_ij = ex_3_4.minimum_image_vector(x[:, first_particle], x[:, second_particle], box)
+            if np.linalg.norm(r_ij) < (r_cut + skin):
+                verlet_list.append((first_particle, second_particle))
 
     return np.copy(x), np.array(verlet_list)
 
-def step_vv(x: np.ndarray, v: np.ndarray, f: np.ndarray, dt: float, r_cut: float, skin: float, box: np.ndarray, x0: np.ndarray, verlet_list: np.ndarray):
+def step_vv(x: np.ndarray, v: np.ndarray, f: np.ndarray, dt: float, r_cut: float, skin: float, box: np.ndarray, x0: np.ndarray, verlet_list: np.ndarray):  
+    global update_counter
     # update positions
     x += v * dt + 0.5 * f * dt * dt
     # check for maximum distance a particle moved
     max_dx = np.max(np.linalg.norm(x - x0, axis=0))
     if max_dx > 0.5 * skin:
         x0, verlet_list = get_verlet_list(x, r_cut, skin, box)
-
+        update_counter += 1
     # half update of the velocity
     v += 0.5 * f * dt
 
@@ -91,7 +112,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     DT = 0.01
-    T_MAX = 40.0
+    T_MAX = 1.0
     N_TIME_STEPS = int(T_MAX / DT)
 
     R_CUT = 2.5
@@ -108,8 +129,9 @@ if __name__ == "__main__":
     BOX = np.ones(DIM) * VOLUME**(1. / DIM)
 
     # particle positions
-    x = np.array(list(itertools.product(np.linspace(0, BOX[0], N_PER_SIDE, endpoint=False),
-                                        np.linspace(0, BOX[1], N_PER_SIDE, endpoint=False)))).T
+    # x = np.array(list(itertools.product(np.linspace(0, BOX[0], N_PER_SIDE, endpoint=False),
+    #                                     np.linspace(0, BOX[1], N_PER_SIDE, endpoint=False)))).T
+    x = ex_3_5.init_2dgrid_positions(N_PER_SIDE, BOX)
 
     # random particle velocities
     v = 2.0 * np.random.random((DIM, N_PART)) - 1.0
@@ -125,7 +147,7 @@ if __name__ == "__main__":
         x, v, f, x0, verlet_list = step_vv(x, v, f, DT, R_CUT, SKIN, BOX, x0, verlet_list)
 
         positions[i] = x
-        energies[i] = total_energy(x, v, R_CUT, SHIFT, BOX, verlet_list)
+        energies[i] = total_energy(x, v, R_CUT, BOX, verlet_list)
 
     plt.plot(energies)
     plt.show()
