@@ -36,6 +36,11 @@ def lj_force(r_ij: np.ndarray, r_cutoff: float) -> np.ndarray:
     return ex_3_2.lj_force(r_ij) if vector_norm <= r_cutoff else np.zeros(len(r_ij))
 
 
+def minimum_image_vector(first_position: np.ndarray, second_position: np.ndarray, box: np.ndarray) -> np.ndarray:
+    distance = first_position - second_position
+    return distance - box * np.round( distance / box )
+
+
 def forces(x: np.ndarray, r_cutoff: float, box: np.ndarray) -> np.ndarray:
     """Compute and return the forces acting onto the particles,
     depending on the positions x."""
@@ -44,8 +49,7 @@ def forces(x: np.ndarray, r_cutoff: float, box: np.ndarray) -> np.ndarray:
     for i in range(1, N):
         for j in range(i):
             # distance vector in minimal image convention
-            distance = x[:, j] - x[:, i]
-            r_ij = distance - box * np.round( distance / box)
+            r_ij = minimum_image_vector(x[:, j], x[:, i], box)
             f_ij = lj_force(r_ij, r_cutoff)
             # f_ij = ex_3_2.lj_force(r_ij)
             f[:, i] -= f_ij
@@ -63,8 +67,7 @@ def total_energy(x: np.ndarray, v: np.ndarray, r_cuttoff: float, box: float) -> 
     for i in range(1, N):
         for j in range(i):
             # distance vector in minimal image convention
-            distance = x[:, j] - x[:, i]
-            r_ij = distance - box * np.round( distance / box)
+            r_ij = minimum_image_vector(x[:, j], x[:, i], box)
             E_pot += lj_potential(r_ij, r_cuttoff)
             # E_pot += ex_3_2.lj_potential(r_ij)
     # sum up kinetic energy
@@ -74,6 +77,8 @@ def total_energy(x: np.ndarray, v: np.ndarray, r_cuttoff: float, box: float) -> 
 
 
 def step_vv(x: np.ndarray, v: np.ndarray, f: np.ndarray, dt: float, r_cuttof: float, box: np.ndarray):
+    # perform PBC
+    x, v = apply_pbc(x, v, box)
     # update positions
     x += v * dt + 0.5 * f * dt * dt
     # half update of the velocity
@@ -94,7 +99,6 @@ def apply_pbc(x: np.ndarray, v: np.ndarray, box: np.ndarray) -> Tuple[np.ndarray
     Write helper
     """
     for atom_position in x.T:
-        print(atom_position)
         boundary_passed = atom_position // box
         
         if boundary_passed[0] != 0:
@@ -135,7 +139,6 @@ def test_pbc():
 
 
     for i in range(N_TIME_STEPS):
-        x, v = apply_pbc(x, v, BOX)
         x, v, f = step_vv(x, v, f, DT, R_CUT, BOX)
         time += DT
 

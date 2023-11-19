@@ -79,7 +79,6 @@ def parabola(x, a):
     return a*x**2
 
 
-
 if __name__ == "__main__":
 
     n_per_side_array = np.arange(3, 13, 1, dtype=int)
