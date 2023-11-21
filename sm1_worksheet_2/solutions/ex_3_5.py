@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from typing import Tuple
 
 import numpy as np
@@ -66,11 +64,17 @@ def init_and_run_sim(n_per_side: float) -> Tuple[int, float]:
         x, v, f = ex_3_4.step_vv(x, v, f, DT, R_CUT, BOX)
 
         positions[i] = x
-        energies[i] = ex_3_4.total_energy(x, v, R_CUT, BOX)
+        energies[i] = ex_3_4.total_energy(x, v, R_CUT, SHIFT, BOX)
 
     end_time = time.time()
     run_time = end_time - start_time
     print(f'{N_PART}, {run_time}')
+
+    plt.plot(x[0, :], x[1, :], '.')
+    plt.show()
+
+    plt.plot(energies)
+    plt.show()
 
     return N_PART, run_time
 

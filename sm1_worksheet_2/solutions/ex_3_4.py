@@ -19,13 +19,18 @@ from typing import Tuple
 import ex_3_2
 
 
-def lj_potential(r_ij: np.ndarray, r_cutoff: float) -> float:
+def lj_potential(r_ij: np.ndarray, r_cutoff: float, shift: float) -> float:
     """
     write helper
     """
     vector_norm = np.linalg.norm(r_ij)
-    shift_height = ex_3_2.lj_potential(np.array([r_cutoff, 0.0]))
-    return 4 * ( (1 / vector_norm**12) - (1 / vector_norm**6) ) - shift_height if vector_norm <= r_cutoff else 0.0
+    try:
+        output = 4 * ( (1 / vector_norm**12) - (1 / vector_norm**6) ) - shift if vector_norm <= r_cutoff else 0.0
+    except Exception as e:
+        print(r_ij)
+        raise(e)
+    
+    return output
 
 
 def lj_force(r_ij: np.ndarray, r_cutoff: float) -> np.ndarray:
@@ -37,8 +42,12 @@ def lj_force(r_ij: np.ndarray, r_cutoff: float) -> np.ndarray:
 
 
 def minimum_image_vector(first_position: np.ndarray, second_position: np.ndarray, box: np.ndarray) -> np.ndarray:
+    """
+    Write helper
+    """
     distance = first_position - second_position
     return distance - box * np.round( distance / box )
+    # return distance
 
 
 def forces(x: np.ndarray, r_cutoff: float, box: np.ndarray) -> np.ndarray:
@@ -57,7 +66,7 @@ def forces(x: np.ndarray, r_cutoff: float, box: np.ndarray) -> np.ndarray:
     return f
 
 
-def total_energy(x: np.ndarray, v: np.ndarray, r_cuttoff: float, box: float) -> np.ndarray:
+def total_energy(x: np.ndarray, v: np.ndarray, r_cuttoff: float, shift: float, box: float) -> np.ndarray:
     """Compute and return the total energy of the system with the
     particles at positions x and velocities v."""
     N = x.shape[1]
@@ -68,7 +77,7 @@ def total_energy(x: np.ndarray, v: np.ndarray, r_cuttoff: float, box: float) -> 
         for j in range(i):
             # distance vector in minimal image convention
             r_ij = minimum_image_vector(x[:, j], x[:, i], box)
-            E_pot += lj_potential(r_ij, r_cuttoff)
+            E_pot += lj_potential(r_ij, r_cuttoff, shift)
             # E_pot += ex_3_2.lj_potential(r_ij)
     # sum up kinetic energy
     for i in range(N):
@@ -119,6 +128,8 @@ def test_pbc():
     BOX = np.array([BOX_L, BOX_L])
     R_CUT = 2.5
 
+    SHIFT = ex_3_2.lj_potential(R_CUT)
+
     x = np.zeros((2, 2))
     x[:, 0] = [3.9, 3.0]
     x[:, 1] = [6.1, 5.0]
@@ -143,7 +154,7 @@ def test_pbc():
         time += DT
 
         positions[i, :2] = x
-        energies[i] = total_energy(x, v, R_CUT, BOX)
+        energies[i] = total_energy(x, v, R_CUT, SHIFT, BOX)
 
     traj = np.array(positions)
 
@@ -243,11 +254,14 @@ if __name__ == "__main__":
     distance_vector = np.zeros((1000, 2))
     distance_vector[:, 0] = np.linspace(0.85, 3.0, 1000)
 
+    r_cut = 2.5
+    shift = ex_3_2.lj_potential(r_cut)
+
     lj_potential_computed = np.array([ex_3_2.lj_potential(distance) for distance in distance_vector])
-    lj_truncated_computed = np.array([lj_potential(distance, 2.5) for distance in distance_vector])
+    lj_truncated_computed = np.array([lj_potential(distance, r_cut, shift) for distance in distance_vector])
 
     lj_force_computed = np.array([ex_3_2.lj_force(distance) for distance in distance_vector])
-    lj_force_truncated = np.array([lj_force(distance, 2.5) for distance in distance_vector])
+    lj_force_truncated = np.array([lj_force(distance, r_cut) for distance in distance_vector])
 
     print(lj_force_computed.shape)
     print(lj_force_truncated.shape)
