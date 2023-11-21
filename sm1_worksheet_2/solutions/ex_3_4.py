@@ -80,13 +80,13 @@ def total_energy(x: np.ndarray, v: np.ndarray, r_cuttoff: float, shift: float, b
 
 
 def step_vv(x: np.ndarray, v: np.ndarray, f: np.ndarray, dt: float, r_cuttof: float, box: np.ndarray):
-    # perform PBC
-    x, v = apply_pbc(x, v, box)
     # update positions
     x += v * dt + 0.5 * f * dt * dt
     # half update of the velocity
     v += 0.5 * f * dt
 
+    # perform PBC    
+    x, v = apply_pbc(x, v, box)
     # compute new forces
     f = forces(x, r_cuttof, box)
     # we assume that all particles have a mass of unity
@@ -96,7 +96,7 @@ def step_vv(x: np.ndarray, v: np.ndarray, f: np.ndarray, dt: float, r_cuttof: fl
 
     return x, v, f
 
-# iteriert falsche axis, siehe 3.3
+
 def apply_pbc(x: np.ndarray, v: np.ndarray, box: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Write helper

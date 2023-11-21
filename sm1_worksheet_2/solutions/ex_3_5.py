@@ -70,11 +70,11 @@ def init_and_run_sim(n_per_side: float) -> Tuple[int, float]:
     run_time = end_time - start_time
     print(f'{N_PART}, {run_time}')
 
-    plt.plot(x[0, :], x[1, :], '.')
-    plt.show()
+    # plt.plot(x[0, :], x[1, :], '.')
+    # plt.show()
 
-    plt.plot(energies)
-    plt.show()
+    # plt.plot(energies)
+    # plt.show()
 
     return N_PART, run_time
 
@@ -85,7 +85,7 @@ def parabola(x, a):
 
 if __name__ == "__main__":
 
-    n_per_side_array = np.arange(3, 13, 1, dtype=int)
+    n_per_side_array = np.arange(3, 14, 1, dtype=int)
 
     particle_numbers, simulation_runtimes = [], []
     for n in n_per_side_array:
@@ -93,6 +93,8 @@ if __name__ == "__main__":
         particle_numbers.append(part_number)
         simulation_runtimes.append(sim_runtime)
     
+    np.save('sm1_worksheet_2/plots/ex_3_5_runtimes.npy', np.array(simulation_runtimes))
+
     # fit
     popt, pcov = curve_fit(parabola, particle_numbers, simulation_runtimes)
     print(f'Fit finished!')
