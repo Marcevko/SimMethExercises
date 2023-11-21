@@ -29,7 +29,7 @@ def init_and_run_sim(n_per_side: float) -> Tuple[int, float]:
     N_TIME_STEPS = int(T_MAX / DT)
 
     R_CUT = 2.5
-    SHIFT = 0.016316891136
+    SHIFT = - 0.016316891136
 
     DENSITY = 0.7
     N_PART = n_per_side**2

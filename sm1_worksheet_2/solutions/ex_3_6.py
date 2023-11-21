@@ -33,8 +33,8 @@ def forces(x: np.ndarray, r_cut: float, box: np.ndarray, verlet_list: np.ndarray
             # distance vector
             r_ij = ex_3_4.minimum_image_vector(x[:, pair[0]], x[:, pair[1]], box) 
             f_ij = ex_3_4.lj_force(r_ij, r_cut)
-            f[:, pair[0]] -= f_ij
-            f[:, pair[1]] += f_ij
+            f[:, pair[0]] += f_ij
+            f[:, pair[1]] -= f_ij
     return f
 
 
@@ -67,7 +67,6 @@ def get_verlet_list(x: np.ndarray, r_cut: float, skin: float, box: np.ndarray) -
     for first_particle in range(N):
         for second_particle in range(first_particle + 1, N):
             r_ij = ex_3_4.minimum_image_vector(x[:, second_particle], x[:, first_particle], box)
-            # r_ij = x[:, first_particle] - x[:, second_particle]
             if np.linalg.norm(r_ij) < (r_cut + skin):
                 verlet_list.append([second_particle, first_particle])
 
@@ -88,7 +87,6 @@ def step_vv(x: np.ndarray, v: np.ndarray, f: np.ndarray, dt: float, r_cut: float
 
     # compute new forces
     f = forces(x, r_cut, box, verlet_list)
-    # f = ex_3_4.forces(x, r_cut, box)
     # we assume that all particles have a mass of unity
 
     # second half update of the velocity
@@ -122,7 +120,7 @@ if __name__ == "__main__":
     N_TIME_STEPS = int(T_MAX / DT)
 
     R_CUT = 2.5
-    SHIFT = 0.016316891136
+    SHIFT = - 0.016316891136
 
     SKIN = args.skin[0]
     nargs=1,
@@ -139,44 +137,21 @@ if __name__ == "__main__":
     #                                     np.linspace(0, BOX[1], N_PER_SIDE, endpoint=False)))).T
     x = ex_3_5.init_2dgrid_positions(N_PER_SIDE, BOX)
 
-    plt.plot(x[0, :], x[1, :], '.', color='red')
-    plt.axhline(y=0.0, ls=':', color='k')
-    plt.axhline(y=BOX[1], ls=':', color='k')
-    plt.axvline(x=0.0, ls=':', color='k')
-    plt.axvline(x=BOX[0], ls=':', color='k')
-    # plt.savefig('sm1_worksheet_2/plots/grid_positions_5_particles.png', format='png', dpi=600)
-    plt.show()
-
     # random particle velocities
     v = 2.0 * np.random.random((DIM, N_PART)) - 1.0
 
     x0, verlet_list = get_verlet_list(x, R_CUT, SKIN, BOX)
-    print(x0[:, 0].shape)
-    # print(verlet_list)
 
-    # f = forces(x, R_CUT, BOX, verlet_list)
-    f = ex_3_4.forces(x, R_CUT, BOX)
+    f = forces(x, R_CUT, BOX, verlet_list)
 
     positions = np.zeros((N_TIME_STEPS, DIM, N_PART))
     energies = np.zeros(N_TIME_STEPS)
 
     for i in tqdm.tqdm(range(N_TIME_STEPS)):
         x, v, f, x0, verlet_list = step_vv(x, v, f, DT, R_CUT, SKIN, BOX, x0, verlet_list) 
-        # x, v, f = ex_3_4.step_vv(x, v, f, DT, R_CUT, BOX)
 
         positions[i] = x
         energies[i] = total_energy(x, v, R_CUT, SHIFT, BOX, verlet_list)
-        # energies[i] = ex_3_4.total_energy(x, v, R_CUT, SHIFT, BOX)
-
-        # if i in [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]:
-        #     print(i)
-        #     plt.plot(x[0, :], x[1, :], '.', color='red')
-        #     plt.axhline(y=0.0, ls=':', color='k')
-        #     plt.axhline(y=BOX[1], ls=':', color='k')
-        #     plt.axvline(x=0.0, ls=':', color='k')
-        #     plt.axvline(x=BOX[0], ls=':', color='k')
-        #     # plt.savefig('sm1_worksheet_2/plots/grid_positions_5_particles.png', format='png', dpi=600)
-        #     plt.show()
 
     print('number of updates: ', update_counter)
     plt.plot(energies)

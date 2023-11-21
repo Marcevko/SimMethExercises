@@ -24,13 +24,7 @@ def lj_potential(r_ij: np.ndarray, r_cutoff: float, shift: float) -> float:
     write helper
     """
     vector_norm = np.linalg.norm(r_ij)
-    try:
-        output = 4 * ( (1 / vector_norm**12) - (1 / vector_norm**6) ) - shift if vector_norm <= r_cutoff else 0.0
-    except Exception as e:
-        print(r_ij)
-        raise(e)
-    
-    return output
+    return 4 * ( (1 / vector_norm**12) - (1 / vector_norm**6) ) - shift if vector_norm <= r_cutoff else 0.0
 
 
 def lj_force(r_ij: np.ndarray, r_cutoff: float) -> np.ndarray:
@@ -58,11 +52,11 @@ def forces(x: np.ndarray, r_cutoff: float, box: np.ndarray) -> np.ndarray:
     for i in range(1, N):
         for j in range(i):
             # distance vector in minimal image convention
-            r_ij = minimum_image_vector(x[:, j], x[:, i], box)
+            r_ij = minimum_image_vector(x[:, i], x[:, j], box)
             f_ij = lj_force(r_ij, r_cutoff)
             # f_ij = ex_3_2.lj_force(r_ij)
-            f[:, i] -= f_ij
-            f[:, j] += f_ij
+            f[:, i] += f_ij
+            f[:, j] -= f_ij
     return f
 
 
@@ -76,7 +70,7 @@ def total_energy(x: np.ndarray, v: np.ndarray, r_cuttoff: float, shift: float, b
     for i in range(1, N):
         for j in range(i):
             # distance vector in minimal image convention
-            r_ij = minimum_image_vector(x[:, j], x[:, i], box)
+            r_ij = minimum_image_vector(x[:, i], x[:, j], box)
             E_pot += lj_potential(r_ij, r_cuttoff, shift)
             # E_pot += ex_3_2.lj_potential(r_ij)
     # sum up kinetic energy
