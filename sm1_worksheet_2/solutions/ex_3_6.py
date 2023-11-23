@@ -105,7 +105,7 @@ def init_and_run_simulation(n_per_side: int, skin: float, T_MAX = None) -> Tuple
     write helper
     """
     DT = 0.01
-    T_MAX = 1.0 if T_MAX is None else T_MAX
+    T_MAX = 40.0 if T_MAX is None else T_MAX
     N_TIME_STEPS = int(T_MAX / DT)
 
     R_CUT = 2.5
@@ -168,65 +168,71 @@ if __name__ == "__main__":
     skin_values = np.arange(0.0, 1.0, 0.1)
 
     # plots were made for T_MAX = 40.0
-    # run_time_list, counter_list = [], []
-    # for skin in skin_values:
-    #     run_time, counts = init_and_run_simulation(n_per_side, skin)
-    #     run_time_list.append(run_time)
-    #     counter_list.append(counts)
+    run_time_list, counter_list = [], []
+    for skin in skin_values:
+        run_time, counts = init_and_run_simulation(n_per_side, skin)
+        run_time_list.append(run_time)
+        counter_list.append(counts)
 
-    # # generate plots
-    # fig, axs = plt.subplots(1, 2,figsize=(12.0, 6.0))
+    real_counter_list = [counter_list[0]]
+    for i in range(len(counter_list) - 1):
+        real_counter_list.append(counter_list[i+1] - counter_list[i])
 
-    # axs[0].plot(skin_values, counter_list, marker='o', markersize=6, lw=1, ls=":", color='mediumblue')
+
+    print(real_counter_list, counter_list)
+    # generate plots
+    fig, axs = plt.subplots(1, 2,figsize=(12.0, 6.0))
+
+    axs[0].plot(skin_values, real_counter_list, marker='o', markersize=6, lw=1, ls=":", color='mediumblue')
     
-    # axs[0].set_ylabel("Number of Verlet List Updates")
-    # axs[0].set_xlabel('Skin value')
-    # axs[0].set_title('Skin value vs. Verlet List Updates')
+    axs[0].set_ylabel("Number of Verlet List Updates")
+    axs[0].set_xlabel('Skin value')
+    axs[0].set_title('Skin value vs. Verlet List Updates')
 
 
-    # axs[1].plot(skin_values, run_time_list, marker='o', markersize=6, lw=1, ls=":", color='mediumblue')
+    axs[1].plot(skin_values, run_time_list, marker='o', markersize=6, lw=1, ls=":", color='mediumblue')
         
-    # axs[1].set_ylabel("Simulation Run Time [s]")
-    # axs[1].set_xlabel('Skin value')
-    # axs[1].set_title('Skin value vs. Simulation Run Time')
+    axs[1].set_ylabel("Simulation Run Time [s]")
+    axs[1].set_xlabel('Skin value')
+    axs[1].set_title('Skin value vs. Simulation Run Time')
 
-    # fig.tight_layout()
-    # # plt.savefig('sm1_worksheet_2/plots/SkinComparison.png', format='png', dpi=600)
-    # plt.show()
+    fig.tight_layout()
+    plt.savefig('sm1_worksheet_2/plots/SkinComparison.png', format='png', dpi=600)
+    plt.show()
 
     # print(run_time_list[2], run_time_list[3])
 
-    ex_3_5_runtimes = np.load('sm1_worksheet_2/plots/ex_3_5_runtimes.npy')
+    # ex_3_5_runtimes = np.load('sm1_worksheet_2/plots/ex_3_5_runtimes.npy')
     
-    minimal_skin = 0.3
-    T_MAX = 2.50
+    # minimal_skin = 0.3
+    # T_MAX = 2.50
     
-    n_per_side_list = np.arange(3, 14, 1, dtype=int)
-    simulation_runtimes = []
-    for n in n_per_side_list:
-        min_run_time, _ = init_and_run_simulation(n, minimal_skin, T_MAX=T_MAX)
-        simulation_runtimes.append(min_run_time)
+    # n_per_side_list = np.arange(3, 14, 1, dtype=int)
+    # simulation_runtimes = []
+    # for n in n_per_side_list:
+    #     min_run_time, _ = init_and_run_simulation(n, minimal_skin, T_MAX=T_MAX)
+    #     simulation_runtimes.append(min_run_time)
 
 
-    fig, axs = plt.subplots(1, 2, figsize=(12.0, 6.0))
+    # fig, axs = plt.subplots(1, 2, figsize=(12.0, 6.0))
 
-    axs[0].plot(n_per_side_list**2, simulation_runtimes, marker='o', markersize=6, lw=1, ls=":", color='mediumblue', label='w/ Verlet-List')
-    axs[0].plot(n_per_side_list**2, ex_3_5_runtimes, marker='o', markersize=6, lw=1, ls=":", color='orangered', label='w/o Verlet-List')
-    axs[0].legend(loc='upper left')
+    # axs[0].plot(n_per_side_list**2, simulation_runtimes, marker='o', markersize=6, lw=1, ls=":", color='mediumblue', label='w/ Verlet-List')
+    # axs[0].plot(n_per_side_list**2, ex_3_5_runtimes, marker='o', markersize=6, lw=1, ls=":", color='orangered', label='w/o Verlet-List')
+    # axs[0].legend(loc='upper left')
 
-    axs[1].plot(n_per_side_list**2, simulation_runtimes, marker='o', markersize=6, lw=1, ls=":", color='mediumblue')
-    axs[1].plot(n_per_side_list**2, ex_3_5_runtimes, marker='o', markersize=6, lw=1, ls=":", color='orangered')
-    axs[1].loglog()
+    # axs[1].plot(n_per_side_list**2, simulation_runtimes, marker='o', markersize=6, lw=1, ls=":", color='mediumblue')
+    # axs[1].plot(n_per_side_list**2, ex_3_5_runtimes, marker='o', markersize=6, lw=1, ls=":", color='orangered')
+    # axs[1].loglog()
     
-    axs[0].set_ylabel('Simulation Run Times [s]')
-    axs[0].set_xlabel('Particle Number')
-    axs[1].set_xlabel('Particle Number')
+    # axs[0].set_ylabel('Simulation Run Times [s]')
+    # axs[0].set_xlabel('Particle Number')
+    # axs[1].set_xlabel('Particle Number')
 
-    axs[0].set_title('vanilla axes')
-    axs[1].set_title('double log axes')
+    # axs[0].set_title('vanilla axes')
+    # axs[1].set_title('double log axes')
 
-    fig.suptitle(f'Number of Particles vs. Simulation runtime for T_MAX={T_MAX}')
-    fig.tight_layout()
-    plt.savefig('sm1_worksheet_2/plots/OptimalSkinRuntimes.png', format='png', dpi=600)
-    plt.show()
+    # fig.suptitle(f'Number of Particles vs. Simulation runtime for T_MAX={T_MAX}')
+    # fig.tight_layout()
+    # plt.savefig('sm1_worksheet_2/plots/OptimalSkinRuntimes.png', format='png', dpi=600)
+    # plt.show()
 
