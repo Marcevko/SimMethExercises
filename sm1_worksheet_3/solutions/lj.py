@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # introduce classes to the students
 class Simulation:
     def __init__(self, dt, x, v, box, r_cut, shift):
@@ -9,6 +7,13 @@ class Simulation:
         self.box = box.copy()
         self.r_cut = r_cut
         self.shift = shift
+        
+        self.state = {
+            'positions': None,
+            'velocities': None,
+            'forces': None,
+            'energies': None,
+        }
 
         self.n_dims = self.x.shape[0]
         self.n = self.x.shape[1]
@@ -82,6 +87,11 @@ class Simulation:
         # second half update of the velocity
         self.v += 0.5 * self.f * self.dt
 
+    def save_state(self):
+        self.state['positions'] = self.x.copy()
+        self.state['velocities'] = self.v.copy()
+        self.state['forces'] = self.f.copy()            
+
 
 def write_checkpoint(state, path, overwrite=False):
     if os.path.exists(path) and not overwrite:
@@ -152,11 +162,22 @@ if __name__ == "__main__":
         with open(args.cpt, 'rb') as fp:
             data = pickle.load(fp)
 
+        # start new observables instead of loading from previous (checkpoint) run, only energies are saved for now!
+        positions = []
+        energies = []
+        pressures = []
+        temperatures = []
+        rdfs = []
+
+        x = data['positions']
+        v = data['velocities']
+        energies = list(data['energies'])
+
     sim = Simulation(DT, x, v, BOX, R_CUT, SHIFT)
 
     # If checkpoint is used, also the forces have to be reloaded!
     if args.cpt and os.path.exists(args.cpt):
-        sim.f = f
+        sim.f = data['forces']
 
     for i in tqdm.tqdm(range(N_TIME_STEPS)):
         sim.propagate()
@@ -169,5 +190,7 @@ if __name__ == "__main__":
             rdfs.append(sim.rdf())
 
     if args.cpt:
-        state = {'energies': energies}
+        sim.save_state()
+        state = sim.state.copy()
+        state['energies'] = np.array(energies).copy()    
         write_checkpoint(state, args.cpt, overwrite=True)
