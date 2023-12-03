@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import pickle
 import argparse
 
@@ -12,6 +10,10 @@ args = parser.parse_args()
 
 with open(args.file, 'rb') as fp:
     data = pickle.load(fp)
+
+print(data.keys())
+plt.plot(data['energies'])
+plt.show()
 
 def running_average(O, M):
     pass

@@ -28,7 +28,8 @@ class Simulation:
         self.f_ij_matrix = np.zeros((self.n, self.n, self.n_dims))
         # computed in e_pot_ij_matrix
         self.e_pot_ij_matrix = np.zeros((self.n, self.n))
-        
+
+        # remove maybe later. Do not think that they are necessary at all.
         self.e_pot = 0.0
         self.e_kin = 0.0
         
@@ -70,8 +71,12 @@ class Simulation:
         # compute energy matrix
         self.energies()
 
+        self.e_kin = 0.0
+        self.e_pot = 0.0
+
         #TODO
         # - maybe search for better implementation of sums
+        # - think about removing self.e_kin and self.e_pot variables, as they are only for one time point
 
         # compute potential energy of system as sum over all interacting pair energies
         for i in range(self.n):
@@ -95,7 +100,7 @@ class Simulation:
         for i in range(self.n):
             velocity_terms += np.dot(self.v[:, i], self.v[:, i])
             for j in range(i + 1, self.n):
-                force_terms += self.f_ij_matrix[i,j] * self.r_ij_matrix[i,j]
+                force_terms += np.dot(self.f_ij_matrix[i,j], self.r_ij_matrix[i,j])
         return (velocity_terms + force_terms) / (2*surface_area)
     
     def rdf(self):
@@ -157,7 +162,7 @@ if __name__ == "__main__":
     np.random.seed(2)
 
     DT = 0.01
-    T_MAX = 100.0
+    T_MAX = 1000.0
     N_TIME_STEPS = int(T_MAX / DT)
 
     R_CUT = 2.5
