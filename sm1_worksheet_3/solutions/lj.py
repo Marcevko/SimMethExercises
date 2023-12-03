@@ -28,7 +28,8 @@ class Simulation:
         self.f_ij_matrix = np.zeros((self.n, self.n, self.n_dims))
         # computed in e_pot_ij_matrix
         self.e_pot_ij_matrix = np.zeros((self.n, self.n))
-        
+
+        # remove maybe later. Do not think that they are necessary at all.
         self.e_pot = 0.0
         self.e_kin = 0.0
         
@@ -70,8 +71,12 @@ class Simulation:
         # compute energy matrix
         self.energies()
 
+        self.e_kin = 0.0
+        self.e_pot = 0.0
+
         #TODO
         # - maybe search for better implementation of sums
+        # - think about removing self.e_kin and self.e_pot variables, as they are only for one time point
 
         # compute potential energy of system as sum over all interacting pair energies
         for i in range(self.n):
