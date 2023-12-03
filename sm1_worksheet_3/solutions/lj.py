@@ -1,3 +1,5 @@
+import scipy.constants as constants
+
 # introduce classes to the students
 class Simulation:
     def __init__(self, dt, x, v, box, r_cut, shift):
@@ -13,6 +15,8 @@ class Simulation:
             'velocities': None,
             'forces': None,
             'energies': None,
+            'temperatures': None,
+            'pressures': None,
         }
 
         self.n_dims = self.x.shape[0]
@@ -24,6 +28,13 @@ class Simulation:
         self.f_ij_matrix = np.zeros((self.n, self.n, self.n_dims))
         # computed in e_pot_ij_matrix
         self.e_pot_ij_matrix = np.zeros((self.n, self.n))
+        
+        self.e_pot = 0.0
+        self.e_kin = 0.0
+        
+        self.T = 0.0
+        self.P = 0.0
+
 
     def distances(self):
         self.r_ij_matrix = np.repeat([self.x.transpose()], self.n, axis=0)
@@ -58,17 +69,35 @@ class Simulation:
         """Compute and return the energy components of the system."""
         # compute energy matrix
         self.energies()
-        # TODO compute interaction energy from self.e_pot_ij_matrix
-        # TODO calculate kinetic energy from the velocities self.v and return both energy components
+
+        #TODO
+        # - maybe search for better implementation of sums
+
+        # compute potential energy of system as sum over all interacting pair energies
+        for i in range(self.n):
+            self.e_kin += 0.5*np.dot(self.v[:, i], self.v[:, i])
+            for j in range(i + 1, self.n):
+                self.e_pot += self.e_pot_ij_matrix[i,j]
+
+        return self.e_pot, self.e_kin
 
     def temperature(self):
-        #TODO
-        pass
+        # self.energies()
+        self.T = 2*self.e_kin / (self.n_dims * self.n**self.n_dims * constants.k)
+        return self.T
 
     def pressure(self):
-        #TODO
-        pass
+        # self.energies()
+        surface_area = 2*self.n_dims*self.box**(self.n_dims - 1)
+        force_terms = 0.0
+        velocity_terms = 0.0
 
+        for i in range(self.n):
+            velocity_terms += np.dot(self.v[:, i], self.v[:, i])
+            for j in range(i + 1, self.n):
+                force_terms += self.f_ij_matrix[i,j] * self.r_ij_matrix[i,j]
+        return (velocity_terms + force_terms) / (2*surface_area)
+    
     def rdf(self):
         #TODO
         pass
@@ -171,7 +200,9 @@ if __name__ == "__main__":
 
         x = data['positions']
         v = data['velocities']
-        energies = list(data['energies'])
+        energies = data['energies']
+        pressures = data['pressures']
+        temperatures = data['temperatures']
 
     sim = Simulation(DT, x, v, BOX, R_CUT, SHIFT)
 
@@ -192,5 +223,7 @@ if __name__ == "__main__":
     if args.cpt:
         sim.save_state()
         state = sim.state.copy()
-        state['energies'] = np.array(energies).copy()    
+        state['energies'] = energies
+        state['pressures'] = pressures
+        state['temperatures'] = temperatures
         write_checkpoint(state, args.cpt, overwrite=True)
