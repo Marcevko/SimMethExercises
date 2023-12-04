@@ -93,14 +93,15 @@ class Simulation:
 
     def pressure(self):
         # self.energies()
-        surface_area = 2*self.n_dims*self.box**(self.n_dims - 1)
+        surface_area = 2*self.n_dims*self.box[0]**(self.n_dims - 1)
         force_terms = 0.0
         velocity_terms = 0.0
-
+        
         for i in range(self.n):
             velocity_terms += np.dot(self.v[:, i], self.v[:, i])
             for j in range(i + 1, self.n):
                 force_terms += np.dot(self.f_ij_matrix[i,j], self.r_ij_matrix[i,j])
+
         return (velocity_terms + force_terms) / (2*surface_area)
     
     def rdf(self):
