@@ -112,9 +112,20 @@ class Simulation:
 
         return (velocity_terms + force_terms) / (2*surface_area)
     
+    # implementierung verbessern
     def rdf(self):
-        #TODO
-        pass
+        distance_to_first_particle = np.linalg.norm(self.r_ij_matrix[0, 0:, :], axis=1)
+        hist, bin_edges = np.histogram(distance_to_first_particle, bins=100, range=(0.8, 5.0))
+        bin_middlepoints = [(bin_edges[i+1] + bin_edges[i])/2 for i in range(len(bin_edges) - 1)]
+        delta_r = bin_middlepoints[1] - bin_middlepoints[0]
+
+        density = self.n / (self.box[0]**(self.n_dims))
+        ring_area = np.array(
+            [(np.pi/density)*( (bin_location + delta_r)**2 - bin_location**2) for bin_location in bin_middlepoints]
+        )
+        
+        return hist / ring_area
+        
 
     def propagate(self):
         # update positions
@@ -254,4 +265,5 @@ if __name__ == "__main__":
         state['energies'] = energies
         state['pressures'] = pressures
         state['temperatures'] = temperatures
+        state['rdfs'] = rdfs
         write_checkpoint(state, args.cpt, overwrite=True)

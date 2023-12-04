@@ -4,6 +4,8 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 
+from typing import Tuple
+
 parser = argparse.ArgumentParser()
 parser.add_argument('file', help="Path to pickle file.")
 args = parser.parse_args()
@@ -30,6 +32,13 @@ def compute_equilibrated_observable_mean(O: np.ndarray, t_eq: int):
     """
     mean_value = np.nanmean(O[t_eq:])
     return mean_value
+
+def compute_rdf(rdfs: list) -> np.ndarray:
+    rdfs = np.asarray(rdfs)
+    print(rdfs.shape)
+
+    rdf = np.mean(rdfs, axis=0)
+    return rdf
 
 # create plots for exercise 5
 if args.file == './sm1_worksheet_3/checkpoints/ex_5_checkpoint.pkl':
@@ -83,4 +92,12 @@ if './sm1_worksheet_3/checkpoints/ex_6_checkpoint' in args.file:
     fig.tight_layout(w_pad=2.0)
     splitted_string = args.file.split('.')
     plt.savefig(f'sm1_worksheet_3/plots/running_averages_{splitted_string[1][-2:]}.png', format='png', dpi=600)
+    plt.show()
+
+if args.file=='./sm1_worksheet_3/checkpoints/ex_8_checkpoint.pkl':
+    rdfs_loaded = data['rdfs']
+    test = compute_rdf(rdfs_loaded)
+
+    x_array = np.linspace(0.8, 5.0, 100)
+    plt.plot(x_array, test)
     plt.show()
