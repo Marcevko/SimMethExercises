@@ -5,7 +5,7 @@ TODO
 
 # introduce classes to the students
 class Simulation:
-    def __init__(self, dt, x, v, box, r_cut, shift):
+    def __init__(self, dt, x, v, box, r_cut, shift, thermostat_temp=None):
         self.dt = dt
         self.x = x.copy()
         self.v = v.copy()
@@ -38,6 +38,8 @@ class Simulation:
         
         self.T = 0.0
         self.P = 0.0
+
+        self.thermostat_temp = thermostat_temp
 
 
     def distances(self):
@@ -90,9 +92,11 @@ class Simulation:
         return self.e_pot, self.e_kin
 
     def temperature(self):
-        # self.energies()
+        e_kin = 0.0
+        for i in range(self.n):
+            e_kin += 0.5*np.dot(self.v[:, i], self.v[:, i])
 
-        self.T = 2*self.e_kin / (self.n_dims * self.n**(self.n_dims))
+        self.T = 2*e_kin / (self.n_dims * self.n)
         return self.T
 
     def pressure(self):
@@ -125,12 +129,19 @@ class Simulation:
 
         # second half update of the velocity
         self.v += 0.5 * self.f * self.dt
+        # use velocity-rescaling
+        if self.thermostat_temp:
+            self.velocity_rescale(self.thermostat_temp)
 
     def save_state(self):
         self.state['positions'] = self.x.copy()
         self.state['velocities'] = self.v.copy()
         self.state['forces'] = self.f.copy()            
 
+    def velocity_rescale(self, thermostat_temperature):
+        rescaling_factor = thermostat_temperature / self.temperature()
+        # print(rescaling_factor)
+        self.v *= np.sqrt(rescaling_factor)
 
 def write_checkpoint(state, path, overwrite=False):
     if os.path.exists(path) and not overwrite:
@@ -162,6 +173,11 @@ if __name__ == "__main__":
         '--cpt',
         type=str,
         help='Path to checkpoint.')
+    parser.add_argument(
+        '--thrm',
+        type=float,
+        help='Temperatures to be used by the thermostat.',
+        default=None)
     args = parser.parse_args()
 
     np.random.seed(2)
@@ -172,6 +188,8 @@ if __name__ == "__main__":
 
     R_CUT = 2.5
     SHIFT = 0.016316891136
+
+    TEMP = args.thrm
 
     DIM = 2
     DENSITY = 0.316
@@ -214,7 +232,7 @@ if __name__ == "__main__":
         pressures = data['pressures']
         temperatures = data['temperatures']
 
-    sim = Simulation(DT, x, v, BOX, R_CUT, SHIFT)
+    sim = Simulation(DT, x, v, BOX, R_CUT, SHIFT, TEMP)
 
     # If checkpoint is used, also the forces have to be reloaded!
     if args.cpt and os.path.exists(args.cpt):
