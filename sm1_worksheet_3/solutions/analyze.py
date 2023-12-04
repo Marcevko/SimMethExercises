@@ -58,3 +58,29 @@ if args.file == './sm1_worksheet_3/checkpoints/ex_5_checkpoint.pkl':
     fig.tight_layout(w_pad=2.0)
     plt.savefig('sm1_worksheet_3/plots/running_averages.png', format='png', dpi=600)
     plt.show()
+
+# create plots for exercise 6
+if './sm1_worksheet_3/checkpoints/ex_6_checkpoint' in args.file:
+    fig, axs = plt.subplots(3, 1, figsize=(6.0, 17.0))
+    mathematical_symbols = ['E', 'T', 'P']
+
+    for indx, observable in enumerate(['energies', 'temperatures', 'pressures']):
+        unaveraged_data  = np.array(data[observable])
+        averaged_data_10 = running_average(unaveraged_data, 10)
+        averaged_data_100 = running_average(unaveraged_data, 100)
+
+        time_array = 0.03 * np.arange(0.0, len(unaveraged_data), 1)
+
+        axs[indx].plot(time_array, unaveraged_data, label=f'unaveraged {observable}')
+        axs[indx].plot(time_array, averaged_data_10, label=f'running average with M=10')
+        axs[indx].plot(time_array, averaged_data_100, label=f'running average with M=100')
+        
+        legend_loc = 'upper right' if indx != 1 else 'lower right'
+        axs[indx].legend(loc=legend_loc)
+        axs[indx].set_xlabel(r'time $t$')
+        axs[indx].set_ylabel(f'{observable} {mathematical_symbols[indx]}')
+
+    fig.tight_layout(w_pad=2.0)
+    splitted_string = args.file.split('.')
+    plt.savefig(f'sm1_worksheet_3/plots/running_averages_{splitted_string[1][-2:]}.png', format='png', dpi=600)
+    plt.show()
