@@ -1,4 +1,7 @@
-import scipy.constants as constants
+"""
+TODO
+- ex_5: Nachsehen wo ich die berechnung der gemittelten Observablen einfuegen soll
+"""
 
 # introduce classes to the students
 class Simulation:
@@ -88,7 +91,8 @@ class Simulation:
 
     def temperature(self):
         # self.energies()
-        self.T = 2*self.e_kin / (self.n_dims * self.n**self.n_dims * constants.k)
+
+        self.T = 2*self.e_kin / (self.n_dims * self.n**(self.n_dims))
         return self.T
 
     def pressure(self):
