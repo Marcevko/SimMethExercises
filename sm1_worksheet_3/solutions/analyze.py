@@ -94,7 +94,24 @@ if './sm1_worksheet_3/checkpoints/ex_6_checkpoint' in args.file:
     plt.savefig(f'sm1_worksheet_3/plots/running_averages_{splitted_string[1][-2:]}.png', format='png', dpi=600)
     plt.show()
 
-if args.file=='./sm1_worksheet_3/checkpoints/ex_8_checkpoint.pkl':
+# create test plots for exercise 7
+if args.file=='./sm1_worksheet_3/checkpoints/ex_7_checkpoint.pkl':
+    forces = np.asarray(data['forces_all'])
+    
+    time_array = 0.03 * np.arange(0.0, len(forces), 1)
+
+    plt.plot(time_array, forces[:, 0, :])
+    plt.xlim([0, 5])
+    plt.ylim([-500, 500])
+    
+    plt.title('time evolution of forces (x-coordinate)')
+    plt.xlabel(r'time $t$')
+    plt.ylabel(r'forces $F_x$')
+    plt.savefig('./sm1_worksheet_3/plots/force_capping_plot.png', format='png', dpi=600)
+    plt.show()
+
+# create plots for exercise 8
+if './sm1_worksheet_3/checkpoints/ex_8_checkpoint' in args.file:
     rdfs_loaded = data['rdfs']
     test = compute_rdf(rdfs_loaded)
 

@@ -5,7 +5,7 @@ TODO
 
 # introduce classes to the students
 class Simulation:
-    def __init__(self, dt, x, v, box, r_cut, shift, thermostat_temp=None):
+    def __init__(self, dt, x, v, box, r_cut, shift, thermostat_temp=None, force_cap=None):
         self.dt = dt
         self.x = x.copy()
         self.v = v.copy()
@@ -40,6 +40,7 @@ class Simulation:
         self.P = 0.0
 
         self.thermostat_temp = thermostat_temp
+        self.force_cap = force_cap
 
 
     def distances(self):
@@ -70,6 +71,9 @@ class Simulation:
             with np.errstate(invalid='ignore'):
                 self.f_ij_matrix[:, :, dim] *= np.where(r != 0.0, fac / r, 0.0)
         self.f = np.sum(self.f_ij_matrix, axis=0).transpose()
+
+        if self.force_cap:
+            self.force_capping()
 
     def energy(self):
         """Compute and return the energy components of the system."""
@@ -114,16 +118,19 @@ class Simulation:
     
     # implementierung verbessern
     def rdf(self):
-        distance_to_first_particle = np.linalg.norm(self.r_ij_matrix[0, 0:, :], axis=1)
+        distance_to_first_particle = np.linalg.norm(self.r_ij_matrix[0, 1:, :], axis=1)
         hist, bin_edges = np.histogram(distance_to_first_particle, bins=100, range=(0.8, 5.0))
         bin_middlepoints = [(bin_edges[i+1] + bin_edges[i])/2 for i in range(len(bin_edges) - 1)]
         delta_r = bin_middlepoints[1] - bin_middlepoints[0]
 
         density = self.n / (self.box[0]**(self.n_dims))
+        # ring_area = np.array(
+        #     [(np.pi/density)*( (bin_location + delta_r)**2 - bin_location**2) for bin_location in bin_middlepoints]
+        # )
         ring_area = np.array(
-            [(np.pi/density)*( (bin_location + delta_r)**2 - bin_location**2) for bin_location in bin_middlepoints]
+            [(np.pi/density) * (2*np.pi*bin_location*delta_r) for bin_location in bin_middlepoints]
         )
-        
+
         return hist / ring_area
         
 
@@ -151,8 +158,11 @@ class Simulation:
 
     def velocity_rescale(self, thermostat_temperature):
         rescaling_factor = thermostat_temperature / self.temperature()
-        # print(rescaling_factor)
         self.v *= np.sqrt(rescaling_factor)
+
+    def force_capping(self):
+        self.f = np.where(self.f > self.force_cap, self.force_cap, self.f)
+        self.f = np.where(self.f < - self.force_cap, - self.force_cap, self.f)
 
 def write_checkpoint(state, path, overwrite=False):
     if os.path.exists(path) and not overwrite:
@@ -189,18 +199,24 @@ if __name__ == "__main__":
         type=float,
         help='Temperatures to be used by the thermostat.',
         default=None)
+    parser.add_argument(
+        '--frc_cap',
+        type=float,
+        help='Force-Cap that will be used during the systems warmup.',
+        default=None)
     args = parser.parse_args()
 
     np.random.seed(2)
 
     DT = 0.01
-    T_MAX = 1000.0
+    T_MAX = 10.0
     N_TIME_STEPS = int(T_MAX / DT)
 
     R_CUT = 2.5
     SHIFT = 0.016316891136
 
     TEMP = args.thrm
+    FORCE_CAP = args.frc_cap
 
     DIM = 2
     DENSITY = 0.316
@@ -214,13 +230,17 @@ if __name__ == "__main__":
     if not args.cpt or not os.path.exists(args.cpt):
         logging.info("Starting from scratch.")
         # particle positions
-        x = np.array(list(itertools.product(np.linspace(0, BOX[0], N_PER_SIDE, endpoint=False),
-                                            np.linspace(0, BOX[1], N_PER_SIDE, endpoint=False)))).T
+        if FORCE_CAP:
+            x = np.multiply( BOX, np.random.random((DIM, N_PART)).T ).T
+        else:
+            x = np.array(list(itertools.product(np.linspace(0, BOX[0], N_PER_SIDE, endpoint=False),
+                                                np.linspace(0, BOX[1], N_PER_SIDE, endpoint=False)))).T
 
         # random particle velocities
         v = 0.5*(2.0 * np.random.random((DIM, N_PART)) - 1.0)
 
         positions = []
+        forces = []
         energies = []
         pressures = []
         temperatures = []
@@ -232,6 +252,7 @@ if __name__ == "__main__":
 
         # start new observables instead of loading from previous (checkpoint) run, only energies are saved for now!
         positions = []
+        forces = []
         energies = []
         pressures = []
         temperatures = []
@@ -243,7 +264,7 @@ if __name__ == "__main__":
         pressures = data['pressures']
         temperatures = data['temperatures']
 
-    sim = Simulation(DT, x, v, BOX, R_CUT, SHIFT, TEMP)
+    sim = Simulation(DT, x, v, BOX, R_CUT, SHIFT, TEMP, FORCE_CAP)
 
     # If checkpoint is used, also the forces have to be reloaded!
     if args.cpt and os.path.exists(args.cpt):
@@ -255,13 +276,17 @@ if __name__ == "__main__":
         if i % SAMPLING_STRIDE == 0:
             positions.append(sim.x.copy())
             pressures.append(sim.pressure())
+            forces.append(sim.f)
             energies.append(np.sum(sim.energy()))
             temperatures.append(sim.temperature())
             rdfs.append(sim.rdf())
+            if FORCE_CAP:
+                sim.force_cap *= 1.1
 
     if args.cpt:
         sim.save_state()
         state = sim.state.copy()
+        state['forces_all'] = forces
         state['energies'] = energies
         state['pressures'] = pressures
         state['temperatures'] = temperatures
