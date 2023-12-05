@@ -124,7 +124,7 @@ class Simulation:
         delta_r = bin_middlepoints[1] - bin_middlepoints[0]
 
         density = self.n / (self.box[0]**(self.n_dims))
-        # ring_area = np.array(
+        # ring_area = np.array(splitted_string[1][-2]
         #     [(np.pi/density)*( (bin_location + delta_r)**2 - bin_location**2) for bin_location in bin_middlepoints]
         # )
         ring_area = np.array(
@@ -209,7 +209,7 @@ if __name__ == "__main__":
     np.random.seed(2)
 
     DT = 0.01
-    T_MAX = 10.0
+    T_MAX = 500.0
     N_TIME_STEPS = int(T_MAX / DT)
 
     R_CUT = 2.5
@@ -273,14 +273,20 @@ if __name__ == "__main__":
     for i in tqdm.tqdm(range(N_TIME_STEPS)):
         sim.propagate()
 
-        if i % SAMPLING_STRIDE == 0:
-            positions.append(sim.x.copy())
-            pressures.append(sim.pressure())
-            forces.append(sim.f)
-            energies.append(np.sum(sim.energy()))
-            temperatures.append(sim.temperature())
-            rdfs.append(sim.rdf())
-            if FORCE_CAP:
+        if not FORCE_CAP:
+            if i % SAMPLING_STRIDE == 0:
+                positions.append(sim.x.copy())
+                pressures.append(sim.pressure())
+                forces.append(sim.f)
+                energies.append(np.sum(sim.energy()))
+                temperatures.append(sim.temperature())
+                rdfs.append(sim.rdf())
+        else:
+            if i % SAMPLING_STRIDE == 0:
+                forces.append(sim.f)
+                smaller_than_cap_force = sim.f < sim.force_cap
+                if np.all(smaller_than_cap_force):
+                    break
                 sim.force_cap *= 1.1
 
     if args.cpt:
