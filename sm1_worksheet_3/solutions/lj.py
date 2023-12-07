@@ -17,9 +17,6 @@ class Simulation:
             'positions': None,
             'velocities': None,
             'forces': None,
-            'energies': None,
-            'temperatures': None,
-            'pressures': None,
         }
 
         self.n_dims = self.x.shape[0]
@@ -124,9 +121,7 @@ class Simulation:
         delta_r = bin_middlepoints[1] - bin_middlepoints[0]
 
         density = self.n / (self.box[0]**(self.n_dims))
-        # ring_area = np.array(splitted_string[1][-2]
-        #     [(np.pi/density)*( (bin_location + delta_r)**2 - bin_location**2) for bin_location in bin_middlepoints]
-        # )
+    
         ring_area = np.array(
             [(np.pi/density) * (2*np.pi*bin_location*delta_r) for bin_location in bin_middlepoints]
         )
@@ -209,7 +204,7 @@ if __name__ == "__main__":
     np.random.seed(2)
 
     DT = 0.01
-    T_MAX = 500.0
+    T_MAX = 1000.0
     N_TIME_STEPS = int(T_MAX / DT)
 
     R_CUT = 2.5
@@ -242,6 +237,8 @@ if __name__ == "__main__":
         positions = []
         forces = []
         energies = []
+        e_pot = []
+        e_kin = []
         pressures = []
         temperatures = []
         rdfs = []
@@ -254,6 +251,8 @@ if __name__ == "__main__":
         positions = []
         forces = []
         energies = []
+        e_pot = []
+        e_kin = []
         pressures = []
         temperatures = []
         rdfs = []
@@ -279,8 +278,10 @@ if __name__ == "__main__":
                 pressures.append(sim.pressure())
                 forces.append(sim.f)
                 energies.append(np.sum(sim.energy()))
+                # e_pot.append(sim.e_pot)
+                # e_kin.append(sim.e_kin)
                 temperatures.append(sim.temperature())
-                rdfs.append(sim.rdf())
+                # rdfs.append(sim.rdf())
         else:
             if i % SAMPLING_STRIDE == 0:
                 forces.append(sim.f)
@@ -294,6 +295,8 @@ if __name__ == "__main__":
         state = sim.state.copy()
         state['forces_all'] = forces
         state['energies'] = energies
+        state['e_kin'] = e_kin
+        state['e_pot'] = e_pot
         state['pressures'] = pressures
         state['temperatures'] = temperatures
         state['rdfs'] = rdfs
