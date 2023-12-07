@@ -13,14 +13,6 @@ args = parser.parse_args()
 with open(args.file, 'rb') as fp:
     data = pickle.load(fp)
 
-<<<<<<< HEAD
-print(data.keys())
-plt.plot(data['energies'])
-plt.show()
-
-def running_average(O, M):
-    pass
-=======
 def running_average(O: np.ndarray, M: int) -> np.ndarray:
     """
     Computes the running average of the np.array O with M being the half-window-size.
@@ -49,7 +41,7 @@ def compute_rdf(rdfs: list) -> np.ndarray:
 
 # create plots for exercise 5
 if args.file == './sm1_worksheet_3/checkpoints/ex_5_checkpoint.pkl':
-    fig, axs = plt.subplots(3, 1, figsize=(6.0, 17.0))
+    fig, axs = plt.subplots(3, 1, figsize=(7.0, 14.0))
     mathematical_symbols = ['E', 'T', 'P']
 
     for indx, observable in enumerate(['energies', 'temperatures', 'pressures']):
@@ -73,6 +65,33 @@ if args.file == './sm1_worksheet_3/checkpoints/ex_5_checkpoint.pkl':
 
     fig.tight_layout(w_pad=2.0)
     plt.savefig('sm1_worksheet_3/plots/running_averages.png', format='png', dpi=600)
+    plt.show()
+
+if args.file == './sm1_worksheet_3/checkpoints/ex_5_checkpoint_new.pkl':
+    fig, axs = plt.subplots(3, 1, figsize=(7.0, 14.0))
+    mathematical_symbols = ['E', '', '']
+
+    for indx, observable in enumerate(['energies', 'e_pot', 'e_kin']):
+        unaveraged_data  = np.array(data[observable])
+        averaged_data_10 = running_average(unaveraged_data, 10)
+        averaged_data_100 = running_average(unaveraged_data, 100)
+
+        time_array = 0.03 * np.arange(0.0, len(unaveraged_data), 1)
+
+        axs[indx].plot(time_array, unaveraged_data, label=f'unaveraged {observable}')
+        axs[indx].plot(time_array, averaged_data_10, label=f'running average with M=10')
+        axs[indx].plot(time_array, averaged_data_100, label=f'running average with M=100')
+
+        legend_loc = 'upper right' if indx != 1 else 'lower right'
+        axs[indx].legend(loc=legend_loc)
+        axs[indx].set_xlabel(r'time $t$')
+        axs[indx].set_ylabel(f'{observable} {mathematical_symbols[indx]}')
+
+        equilibrated_mean_observable = compute_equilibrated_observable_mean(unaveraged_data, int(500*100/3))
+        print(f'Mean of {observable} after equilibration time t_eq=500: {equilibrated_mean_observable}')
+
+    fig.tight_layout(w_pad=2.0)
+    plt.savefig('sm1_worksheet_3/plots/running_averages_energies.png', format='png', dpi=600)
     plt.show()
 
 # create plots for exercise 6
@@ -125,23 +144,8 @@ if './sm1_worksheet_3/checkpoints/ex_8_checkpoint' in args.file:
     plt.show()
 
 # create plots for exercise 9
-# if './sm1_worksheet_3/checkpoints/ex_9_checkpoint' in args.file:
-    # forces = np.asarray(data['forces_all'])
-    
-    # time_array = 0.03 * np.arange(0.0, len(forces), 1)
-
-    # plt.plot(time_array, forces[:, 0, :])
-    # plt.xlim([0, 5])
-    # plt.ylim([-500, 500])
-    
-    # plt.title('time evolution of forces (x-coordinate)')
-    # plt.xlabel(r'time $t$')
-    # plt.ylabel(r'forces $F_x$')
-    # plt.show()
-
-# create plots for exercise 9
 if './sm1_worksheet_3/checkpoints/ex_9_checkpoint' in args.file:
-    fig, axs = plt.subplots(3, 1, figsize=(6.0, 17.0))
+    fig, axs = plt.subplots(3, 1, figsize=(7.0, 14.0))
     mathematical_symbols = ['E', 'T', 'P']
 
     for indx, observable in enumerate(['energies', 'temperatures', 'pressures']):
@@ -162,7 +166,7 @@ if './sm1_worksheet_3/checkpoints/ex_9_checkpoint' in args.file:
 
     fig.tight_layout(w_pad=2.0)
     splitted_string = args.file.split('.')
-    plt.savefig(f'sm1_worksheet_3/plots/equilibration_{splitted_string[1][-2:]}.png', format='png', dpi=600)
+    plt.savefig(f'sm1_worksheet_3/plots/equilibration_{splitted_string[1][-2:]}.png', format='png', dpi=300)
     plt.show()
 
 
@@ -174,22 +178,17 @@ if './sm1_worksheet_3/checkpoints/ex_9_checkpoint' in args.file:
     plt.xlabel(r'distance $r$')
     plt.ylabel(r'$g(r)$')
 
-    plt.savefig(f'sm1_worksheet_3/plots/RDF_{splitted_string[1][-2:]}.png', format='png', dpi=600)
+    plt.savefig(f'sm1_worksheet_3/plots/RDF_{splitted_string[1][-2:]}.png', format='png', dpi=300)
     plt.show()
 
+    t_eq = {
+        'T03': 1750,
+        'T10': 4500,
+        'T20': 5500,
+    }
+    mean_energy = compute_equilibrated_observable_mean(data['energies'], int(int(t_eq[splitted_string[1][-3:]])*100*0.3))
+    mean_pressure = compute_equilibrated_observable_mean(data['pressures'], int(int(t_eq[splitted_string[1][-3:]])*100*0.3))
 
-if args.file=='./sm1_worksheet_3/checkpoints/ex_7_checkpoint_test.pkl':
-    forces = np.asarray(data['forces_all'])
-    
-    time_array = 0.03 * np.arange(0.0, len(forces), 1)
+    print(f'mean energy for {splitted_string[1][-3:]}: {mean_energy}')
+    print(f'mean pressure for {splitted_string[1][-3:]}: {mean_pressure}')
 
-    plt.plot(time_array, forces[:, 0, :])
-    # plt.xlim([0, 5])
-    # plt.ylim([-500, 500])
-    
-    plt.title('time evolution of forces (x-coordinate)')
-    plt.xlabel(r'time $t$')
-    plt.ylabel(r'forces $F_x$')
-    # plt.savefig('./sm1_worksheet_3/plots/force_capping_plot.png', format='png', dpi=600)
-    plt.show()
->>>>>>> 43bc56747a8b3ce672c58649b841d958d67872db
