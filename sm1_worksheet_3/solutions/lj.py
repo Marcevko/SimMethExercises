@@ -278,10 +278,10 @@ if __name__ == "__main__":
                 pressures.append(sim.pressure())
                 forces.append(sim.f)
                 energies.append(np.sum(sim.energy()))
-                e_pot.append(sim.e_pot)
-                e_kin.append(sim.e_kin)
+                # e_pot.append(sim.e_pot)
+                # e_kin.append(sim.e_kin)
                 temperatures.append(sim.temperature())
-                rdfs.append(sim.rdf())
+                # rdfs.append(sim.rdf())
         else:
             if i % SAMPLING_STRIDE == 0:
                 forces.append(sim.f)
