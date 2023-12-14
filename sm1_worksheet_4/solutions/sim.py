@@ -69,15 +69,12 @@ def test_uniform_vectors(dt, gamma):
 
 test_uniform_vectors(DT, GAMMA_LANGEVIN)
 
-
 # used T=k=1
+import time 
 def step_vv_langevin(x, v, g, dt, gamma):
     # update positions
     x += v * dt * (1 - 0.5* dt * gamma) + 0.5 * g * dt * dt
-
     # half update of the velocity
-    # v = v * (1 - 0.5*dt*gamma) + 0.5 * dt * g
-    # v /= (1 + 0.5* dt * gamma) 
     v = (v * (1 - 0.5 * dt * gamma) + 0.5 * dt * g) / (1 + 0.5 * dt * gamma)
 
     # for this excercise no forces from other particles
@@ -94,6 +91,7 @@ def step_vv_langevin(x, v, g, dt, gamma):
 print("Starting simulation...")
 t = 0.0
 step = 0
+measurement_step = 0
 
 # random particle positions
 x = np.random.random((N, 3))
@@ -104,16 +102,18 @@ ts = []
 Es = []
 Tms = []
 vels = []
-vels_ = []
 traj = []
 
+measurement_num = (TIME_MAX/DT) // MEASUREMENT_STRIDE
+traj_arr = np.zeros((int(measurement_num), N, DIM), dtype=float)
+
 # main loop
-f = np.zeros_like(x)
+g = np.zeros_like(x)
 
 print(f"Simulating until tmax={TIME_MAX}...")
 
 while t < TIME_MAX:
-    x, v, f = step_vv_langevin(x, v, f, DT, GAMMA_LANGEVIN)
+    x, v, g = step_vv_langevin(x, v, g, DT, GAMMA_LANGEVIN)
 
     t += DT
     step += 1
@@ -122,13 +122,17 @@ while t < TIME_MAX:
         E = compute_energy(v)
         Tm = compute_temperature(v)
         vels.append(v) # changed the flatten
-        traj.append(x)
+        traj.append(x) # Do not know why, but this list only contains the last position array for ALL timesteps... 
+
+        traj_arr[measurement_step] = x # Therefore the array solution
+
         # print(f"t={t}, E={E}, T_m={Tm}")
 
         ts.append(t)
         Es.append(E)
         Tms.append(Tm)
 
+        measurement_step += 1
 
 # at the end of the simulation, write out the final state
 datafilename = f'./sm1_worksheet_4/plots/{args.id}.dat.gz'
@@ -137,7 +141,7 @@ vels = np.array(vels)
 traj = np.array(traj)
 
 datafile = gzip.open(datafilename, 'wb')
-pickle.dump([N, T, GAMMA_LANGEVIN, x, v, ts, Es, Tms, vels, traj], datafile)
+pickle.dump([N, T, GAMMA_LANGEVIN, x, v, ts, Es, Tms, vels, traj_arr], datafile) # writing traj_arr now...
 datafile.close()
 
 print("Finished simulation.")
