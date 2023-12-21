@@ -91,6 +91,9 @@ if __name__ == '__main__':
         
         N, T, GAMMA_LANGEVIN, x, v, ts, Es, Tms, vels, traj = data
 
+    plt.plot(Es)
+    plt.show()
+
     # compute MSD
     if os.path.isfile('./sm1_worksheet_4/plots/msd_all_particles.npy'):
         msd_list = np.load('./sm1_worksheet_4/plots/msd_all_particles.npy')
