@@ -15,6 +15,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import os
+import logging
+
+from scipy.integrate import simpson
+from scipy.optimize import curve_fit
+
+logging.basicConfig(level=logging.INFO)
 
 # all written for only one atom, add atom_indx as argument
 def compute_autocorrelation(vels: np.ndarray, lag_time: int, atom_indx: int):
@@ -71,6 +77,9 @@ def compute_einstein_diffusion(traj: np.ndarray, atom_indx: int):
 
     return np.array(einstein_relation_list), lag_time_list, np.array(einstein_relation_errorbars)
 
+def linear_fit_function(x, m, c):
+    return m*x + c
+
 if __name__ == '__main__':
     # loading data
     parser = argparse.ArgumentParser()
@@ -81,11 +90,8 @@ if __name__ == '__main__':
         data = pickle.load(datafile)
         
         N, T, GAMMA_LANGEVIN, x, v, ts, Es, Tms, vels, traj = data
-    
-    # compute MSD
-    plt.plot(traj[:, 0, 0])
-    plt.show()
 
+    # compute MSD
     if os.path.isfile('./sm1_worksheet_4/plots/msd_all_particles.npy'):
         msd_list = np.load('./sm1_worksheet_4/plots/msd_all_particles.npy')
         _, lag_time_list, single_atom_errorbars = compute_einstein_diffusion(traj, 0)
@@ -97,16 +103,18 @@ if __name__ == '__main__':
         msd_list = np.array(msd_list)
         np.save('./sm1_worksheet_4/plots/msd_all_particles.npy', msd_list)
 
+    ts = np.array(ts)[:len(lag_time_list)]
+
     # compute plot for one atom
     fig, axs = plt.subplots(1, 2, figsize=(14.0, 6.0))
-    axs[0].errorbar(lag_time_list, msd_list[0, :], yerr=single_atom_errorbars, ecolor=(0.5, 0.5, 0.5, 0.3))
-    axs[0].set_ylabel(r'lag time $\tau$')
-    axs[0].set_xlabel(r'MSD($\tau$)')
+    axs[0].errorbar(ts, msd_list[0, :], yerr=single_atom_errorbars, ecolor=(0.5, 0.5, 0.5, 0.3))
+    axs[0].set_xlabel(r'lag time $\tau$')
+    axs[0].set_ylabel(r'MSD($\tau$)')
     axs[0].set_title(r'MSD($\tau$) for the first particle')
 
-    axs[1].errorbar(lag_time_list[:100], msd_list[0, :100], yerr=single_atom_errorbars[:100], ecolor=(0.5, 0.5, 0.5, 0.3))
-    axs[1].set_ylabel(r'lag time $\tau$')
-    axs[1].set_xlabel(r'$MSD(\tau)$')
+    axs[1].errorbar(ts[:100], msd_list[0, :100], yerr=single_atom_errorbars[:100], ecolor=(0.5, 0.5, 0.5, 0.3))
+    axs[1].set_xlabel(r'lag time $\tau$')
+    axs[1].set_ylabel(r'$MSD(\tau)$')
     axs[1].set_title(r'MSD($\tau$) for the first particle (zoomed in)')
 
     fig.tight_layout()
@@ -118,24 +126,46 @@ if __name__ == '__main__':
     averaged_erros = single_atom_errorbars / np.sqrt(msd_list.shape[0])
 
     fig, axs = plt.subplots(1, 2, figsize=(14.0, 6.0))
-    axs[0].errorbar(lag_time_list, msd_all_atoms, yerr=averaged_erros, ecolor=(0.5, 0.5, 0.5, 0.3))
-    axs[0].set_ylabel(r'lag time $\tau$')
-    axs[0].set_xlabel(r'MSD($\tau$)')
+    axs[0].errorbar(ts, msd_all_atoms, yerr=averaged_erros, ecolor=(0.5, 0.5, 0.5, 0.3))
+    axs[0].set_xlabel(r'lag time $\tau$')
+    axs[0].set_ylabel(r'MSD($\tau$)')
     axs[0].set_title(r'MSD($\tau$) for all particles')
 
-    axs[1].errorbar(lag_time_list[:100], msd_all_atoms[:100], yerr=averaged_erros[:100], ecolor=(0.5, 0.5, 0.5, 0.3))
-    axs[1].set_ylabel(r'lag time $\tau$')
-    axs[1].set_xlabel(r'MSD($\tau$)')
+    axs[1].errorbar(ts[:100], msd_all_atoms[:100], yerr=averaged_erros[:100], ecolor=(0.5, 0.5, 0.5, 0.3))
+    axs[1].set_xlabel(r'lag time $\tau$')
+    axs[1].set_ylabel(r'MSD($\tau$)')
     axs[1].set_title(r'MSD($\tau$) for all particles (zoomed in)')
 
     fig.tight_layout()
     plt.savefig('./sm1_worksheet_4/plots/MSD_all_particles.png', format='png', dpi=150)
     plt.show()
 
-    # compute VACF
-    plt.plot(vels[:, 0, 0])
+    # compute diffusion coefficient from MSD
+    popt, pcov = curve_fit(linear_fit_function, ts[10:500], msd_all_atoms[10:500]) # fit only calculated in zoomed in linear regime for all atoms
+    msd_diffusion_coefficient = popt[0] / (2*3)
+    logging.info(
+        f"Diffusion coefficient resulting form linear MSD fit: {msd_diffusion_coefficient}"
+    )
+
+    fig, axs = plt.subplots(1, 2, figsize=(14.0, 6.0))
+    axs[0].errorbar(ts, msd_all_atoms, yerr=averaged_erros, ecolor=(0.5, 0.5, 0.5, 0.3))
+    axs[0].set_xlabel(r'lag time $\tau$')
+    axs[0].set_ylabel(r'MSD($\tau$)')
+    axs[0].set_title(r'MSD($\tau$) for all particles')
+    axs[0].plot(ts[10:], linear_fit_function(ts[10:], *popt), color='red', lw=3)
+
+    axs[1].errorbar(ts[:500], msd_all_atoms[:500], yerr=averaged_erros[:500], ecolor=(0.5, 0.5, 0.5, 0.3), label=r'MSD($\tau$)')
+    axs[1].set_xlabel(r'lag time $\tau$')
+    axs[1].set_ylabel(r'MSD($\tau$)')
+    axs[1].set_title(r'MSD($\tau$) for all particles (zoomed in)')
+    axs[1].plot(ts[10:500], linear_fit_function(ts[10:500], *popt), color='red', label=f'Linear Fit, m={np.round(popt[0], 3)}', lw=3)
+    axs[1].legend()
+
+    fig.tight_layout()
+    plt.savefig('./sm1_worksheet_4/plots/MSD_all_particles_fitted.png', format='png', dpi=150)
     plt.show()
 
+    # compute VACF
     if os.path.isfile('./sm1_worksheet_4/plots/vacf_all_particles.npy'):
         vacf_list = np.load('./sm1_worksheet_4/plots/vacf_all_particles.npy')
         _, lag_time_list = compute_VACF(vels, 0)
@@ -149,19 +179,32 @@ if __name__ == '__main__':
 
     # compute plot for all atoms
     vacf_all_atoms = np.mean(vacf_list, axis=0)
-    averaged_erros = single_atom_errorbars / np.sqrt(vacf_list.shape[1])
+
+    computed_temp = vacf_all_atoms[0] / 3
+    simulation_temp = 0.3
+    vacf_all_atoms *= simulation_temp/computed_temp
 
     fig, axs = plt.subplots(1, 2, figsize=(14.0, 6.0))
-    axs[0].plot(lag_time_list, vacf_all_atoms)
-    axs[0].set_ylabel(r'lag time $\tau$')
-    axs[0].set_xlabel(r'VACF($\tau$)')
+    axs[0].plot(ts, vacf_all_atoms)
+    axs[0].set_xlabel(r'lag time $\tau$')
+    axs[0].set_ylabel(r'VACF($\tau$)')
     axs[0].set_title(r'VACF($\tau$) for all particles')
 
-    axs[1].errorbar(lag_time_list[:100], vacf_all_atoms[:100])
-    axs[1].set_ylabel(r'lag time $\tau$')
-    axs[1].set_xlabel(r'VACF($\tau$)')
+    axs[1].errorbar(ts[:500], vacf_all_atoms[:500])
+    axs[1].set_xlabel(r'lag time $\tau$')
+    axs[1].set_ylabel(r'VACF($\tau$)')
     axs[1].set_title(r'VACF($\tau$) for all particles (zoomed in)')
 
     fig.tight_layout()
     plt.savefig('./sm1_worksheet_4/plots/VACF_all_particles.png', format='png', dpi=150)
     plt.show()
+
+    # compute diffusion coefficient from VACF:
+    vacf_diffusion_coefficient = simpson(vacf_all_atoms, ts)
+    vacf_diffusion_coefficient_2 = simpson(vacf_all_atoms[:500], ts[:500])
+    logging.info(
+        f"Diffusion cofficient resulting from VACF: {vacf_diffusion_coefficient}"
+    )
+    logging.info(
+        f"Second Diffusion cofficient resulting from VACF: {vacf_diffusion_coefficient_2}"
+    )
