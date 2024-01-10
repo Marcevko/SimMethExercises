@@ -15,8 +15,7 @@ def trial_move(delta_x: float, phi0: float) -> float:
     """
     write helper
     """
-
-    r = np.random.uniform(-delta_x, delta_x, size=1)
+    r = np.random.uniform(-delta_x, delta_x)
     return phi0 + r
 
 
@@ -53,17 +52,14 @@ def metropolis(
     current_state = phi0
     for iteration in range(N):
         trial_state = trial_move(phi0)
-        r = np.random.uniform(0.0, 1.0, size=1)
+        r = np.random.uniform(0.0, 1.0)
 
-        if r < (P(trial_state) / P(current_state)):
-            new_state = trial_state
+        if r < np.min([1.0, P(trial_state) / P(current_state)]):
+            current_state = trial_state
 
             acceptance_list[iteration] = 1.0
-        else: # rejected
-            new_state = current_state
         
-        states_list[iteration] = new_state
-        current_state = new_state
+        states_list[iteration] = current_state
 
     return states_list, acceptance_list.mean()
 
@@ -98,8 +94,22 @@ if __name__=="__main__":
             range=(-5.0, 5.0), 
             label=r'$\Delta x = $' + f'{delta_x}' +f'; acc_rate = {sample_dict["acceptance_rate"]}',
             color=color_list[indx],
+            density=True,
         )
 
+        axs[indx].plot(
+            np.linspace(-5.0, 5.0, 10000), 
+            distribution_function(np.linspace(-5.0, 5.0, 10000)),
+            label=r'$g(x)$',
+            color='k',
+        )
         axs[indx].legend(loc='upper right')
+
+    axs[0].set_ylabel('distribution density')
+    axs[2].set_ylabel('distribution density')
+    axs[2].set_xlabel('x')
+    axs[3].set_xlabel('x')
+
+    plt.savefig('./sm1_worksheet_5/plots/simple_sampling.png', format='png', dpi=150)    
     plt.show()
 
