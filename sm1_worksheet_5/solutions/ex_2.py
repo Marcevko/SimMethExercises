@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 
 import os
 from typing import Tuple, Callable
+from tqdm import tqdm
 
 from functools import partial
 
@@ -46,22 +47,22 @@ def metropolis(
             list: list of consecutively drawn states
             float: resulting acceptance rate during metropolis-algo  
     """
-    states_list = np.zeros(N, dtype=float)
-    acceptance_list = np.zeros(N, dtype=float)
+    states_list = []
+    acceptance_number = 0
 
     current_state = phi0
-    for iteration in range(N):
-        trial_state = trial_move(phi0)
+    for iteration in tqdm(range(N), desc='MC Sampling iteration: '):
+        trial_state = trial_move(current_state)
         r = np.random.uniform(0.0, 1.0)
 
         if r < np.min([1.0, P(trial_state) / P(current_state)]):
             current_state = trial_state
 
-            acceptance_list[iteration] = 1.0
+            acceptance_number += 1.0
         
-        states_list[iteration] = current_state
+        states_list.append(current_state) 
 
-    return states_list, acceptance_list.mean()
+    return np.asarray(states_list), acceptance_number/N
 
 if __name__=="__main__":
     # generate 4 sample list with N=100000
