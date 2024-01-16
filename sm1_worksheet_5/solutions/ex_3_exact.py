@@ -12,9 +12,11 @@ import time
 
 """
 k_B = 1.0 for the whole script
+
+SCRIPT HAS TO BE CHECKED, BUT SHOULD BE ABLE TO RUN LIKE THIS
 """
 
-def compute_energy(configuration: np.ndarray) -> float:
+def compute_energy(configuration: np.ndarray, l_box: np.ndarray) -> float:
     """
     Computes the Energy of a two dimensional Ising configuration
 
@@ -25,7 +27,8 @@ def compute_energy(configuration: np.ndarray) -> float:
     Returns:
         energy (float): Energy of the configuration
     """
-    L1, L2 = configuration.shape
+    configuration = configuration.reshape(tuple(l_box))
+    L1, L2 = l_box
     energy = 0.0
     
     for i_indx in range(L1):
@@ -42,12 +45,12 @@ def compute_energy(configuration: np.ndarray) -> float:
     return 0.5 * energy
 
 
-def compute_magnetization(configuration: np.ndarray) -> float: 
+def compute_magnetization(configuration: np.ndarray, l_box: np.ndarray) -> float: 
     return np.abs(np.sum(configuration))
 
 
-def boltzmann_probability(configuration: np.ndarray, temp: float) -> float:
-    energy = compute_energy(configuration)
+def boltzmann_probability(temp: float, l_box: np.ndarray, configuration: np.ndarray) -> float:
+    energy = compute_energy(configuration, l_box)
     beta = 1/temp
     return np.exp(-1 * beta * energy)
 
@@ -68,7 +71,7 @@ def state_space(l_box: np.ndarray) -> np.ndarray:
     return np.array(list(state_space))
 
 # Finish helper
-def compute_mean_observable(compute_observable_func: Callable, configuration: np.ndarray, boltzmann_proba: float) -> float:
+def compute_mean_observable(compute_observable_func: Callable, configuration: np.ndarray, l_box: np.ndarray, boltzmann_proba: float) -> float:
     """
     Computes the mean value of an observable in an 2D Ising model.
 
@@ -76,7 +79,7 @@ def compute_mean_observable(compute_observable_func: Callable, configuration: np
         compute_observable_func (Callable):
             Function that computes the value of the observable dependent on the spin-configuration
     """
-    observable_value = compute_observable_func(configuration)
+    observable_value = compute_observable_func(configuration, l_box)
     
     return boltzmann_proba * observable_value
 
@@ -101,18 +104,19 @@ if __name__=="__main__":
         energy_per_site = 0.0
         magnetization_per_site = 0.0
         for configuration in tqdm(total_state_space):
-            config = configuration.reshape(tuple(l_box))
-            boltzmann_proba = boltzmann_probability(config, temperature)
+            boltzmann_proba = boltzmann_probability(temperature, l_box, configuration)
 
             partition_function += boltzmann_proba
             energy_per_site += compute_mean_observable(
                 compute_energy,
-                config, 
+                configuration, 
+                l_box,
                 boltzmann_proba,
             ) 
             magnetization_per_site += compute_mean_observable(
                 compute_magnetization,
-                config, 
+                configuration, 
+                l_box,
                 boltzmann_proba,
             )
         energy_per_site /= (partition_function * np.prod(l_box))
@@ -124,6 +128,11 @@ if __name__=="__main__":
     duration = (time.time() - start_time) / 60.0 # duration in Minutes
     logging.info('Exact Summation computations finished.')
 
+    save_array = np.array(
+        [temp_list, energy_list, magnetization_list]
+    )
+    np.save('./sm1_worksheet_5/plots/Ising_exact.npy', save_array)
+
     plt.plot(temp_list, energy_list, label=r'energy per site $e$')
     plt.plot(temp_list, magnetization_list, label=r'magnetization per site $m$')
     plt.legend(loc='upper right')
@@ -131,7 +140,7 @@ if __name__=="__main__":
     plt.ylabel('mean observable [a.u.]')
     plt.title(f'Duration: {round(duration, 2)} min')
     
-    plt.savefig(f'./sm1_worksheet_5/plots/exact_Ising_observables.png', format='png', dpi=150)
+    # plt.savefig(f'./sm1_worksheet_5/plots/exact_Ising_observables.png', format='png', dpi=150)
     plt.show()
     
     
