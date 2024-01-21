@@ -19,9 +19,11 @@ def simple_sampling(f: Callable, a: float, b: float, N: int) -> float:
     Computes the approximate integral of a function f in an interval [a, b] with N steps.
     """
     uniform_x_sites = np.linspace(a, b, N)
-    integral_value = ( (b-a) / N) * f(uniform_x_sites).sum()
+    integral_value = (b-a) * f(uniform_x_sites).mean()
 
-    return integral_value
+    statistic_variance = np.square(f(uniform_x_sites) - integral_value).mean()
+
+    return integral_value, np.sqrt(statistic_variance/N)
 
 if __name__=="__main__":
 
@@ -53,16 +55,24 @@ if __name__=="__main__":
 
     # evaluate simple_sampling
     N_list = [2**i for i in np.arange(2, 21, 1)]
-    simple_sampling_results = [
+    simple_sampling_results = np.asarray([
         simple_sampling(f, integration_interval[0], integration_interval[1], n) for n in N_list
-    ]
-    simple_sampling_error = [np.abs(result - definite_integral) for result in simple_sampling_results]
+    ])
+    simple_sampling_error = [np.abs(result - definite_integral) for result in simple_sampling_results[:, 0]]
+    statistical_error = simple_sampling_results[:, 1]
+    integral_results = simple_sampling_results[:, 0]
 
-    plt.plot(N_list, simple_sampling_error, '.', label=f'actual error')
-    plt.xscale('log')
-    plt.xlabel(r'number of integration sites $N$')
+    # plt.errorbar(N_list, integral_results, yerr=statistical_error, label=f'integral estimates')
+    plt.plot(np.arange(2, 21, 1, dtype=int), statistical_error, marker='x', label=f'statistical error')
+    plt.plot(np.arange(2, 21, 1, dtype=int), simple_sampling_error, marker='x', label='absolute error')
+    # plt.axvline(definite_integral, ls=':', label='exact solution', color='k')
+    # plt.xscale('log')
+    # plt.yscale('log')
+    plt.xlabel(r'exponent $i$')
     plt.ylabel(f'Integration error')
+    plt.xticks(np.arange(2, 21, 2, dtype=int))
     plt.legend()
+    plt.savefig('./sm1_worksheet_5/plots/simple_sampling_errors_.png', dpi=150, format='png')
     plt.show()
 
     """
