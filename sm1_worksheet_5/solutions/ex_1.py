@@ -25,6 +25,15 @@ def simple_sampling(f: Callable, a: float, b: float, N: int) -> float:
 
     return integral_value, np.sqrt(statistic_variance/N)
 
+def one_over_x(x):
+    return 1/(2**x)
+
+def one_over_sqrt_x(x):
+    return 1/np.sqrt(2**x)
+
+def one_over_quadratic_x(x):
+    return 1/(x**2)
+
 if __name__=="__main__":
 
     integration_interval = (0.1, 10.0)
@@ -65,6 +74,7 @@ if __name__=="__main__":
     # plt.errorbar(N_list, integral_results, yerr=statistical_error, label=f'integral estimates')
     plt.plot(np.arange(2, 21, 1, dtype=int), statistical_error, marker='x', label=f'statistical error')
     plt.plot(np.arange(2, 21, 1, dtype=int), simple_sampling_error, marker='x', label='absolute error')
+    
     # plt.axvline(definite_integral, ls=':', label='exact solution', color='k')
     # plt.xscale('log')
     # plt.yscale('log')
@@ -75,6 +85,23 @@ if __name__=="__main__":
     plt.savefig('./sm1_worksheet_5/plots/simple_sampling_errors_.png', dpi=150, format='png')
     plt.show()
 
+
+    plt.plot(np.arange(2, 21, 1, dtype=int), statistical_error, marker='x', label=f'statistical error')
+    plt.plot(np.arange(2, 21, 1, dtype=int), simple_sampling_error, marker='x', label='absolute error')
+    plt.plot(np.arange(9, 20, 1), 1.5*one_over_x(np.arange(9, 20, 1)), '--', color='dimgray')
+    plt.plot(np.arange(9, 20, 1), one_over_sqrt_x(np.arange(9, 20, 1)), '--', color='grey')
+    plt.text(14, 0.0001, r'$\propto x^{-1}$', color='dimgray')
+    plt.text(13.5, 0.002, r'$\propto x^{-0.5}$', color='grey')
+
+    # plt.xscale('log')
+    plt.yscale('log')
+
+    plt.xlabel(r'exponent $i$')
+    plt.ylabel(f'Integration error')
+    plt.xticks(np.arange(2, 21, 2, dtype=int))
+    plt.legend()
+    plt.savefig('./sm1_worksheet_5/plots/simple_sampling_errors_loglog.png', dpi=150, format='png')
+    plt.show()
     """
     TODO:
     statistical error mal nachsehen und hier implementieren. Wird wahrscheinlich in der VL definiert sein
