@@ -31,8 +31,6 @@ for v in -1, 1:
     for i in range(5):
         for j in range(5):
             I.set(i, j, v)
-    print(I.as_numpy())
-    print(I.)
     assert I.magnetization() == v
     assert I.energy() == -2. * l*l
 for i in range(5):

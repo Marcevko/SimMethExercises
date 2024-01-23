@@ -41,6 +41,8 @@ public:
   void recalculate_magnetization() {
     // TODO
     // Calculate the magnetization of the system and store it in m_M
+    m_M = 0.0;
+
     for (int i=0; i<m_l; i++) {
       for (int j=0; j<m_l; j++) {
         m_M += get(i, j);
