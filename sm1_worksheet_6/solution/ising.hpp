@@ -147,8 +147,13 @@ public:
     // TODO
     // Try n moves at randomly chosen spins.
     // Re-use (don't copy) existing code!
+    bool break_condition;
     for (int i=0; i<n; i++) {
-      try_random_flip();
+      break_condition = try_random_flip();
+
+      // if (break_condition) {
+      //   break;
+      // }
     }
   }
 

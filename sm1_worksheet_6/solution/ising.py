@@ -1,6 +1,8 @@
 from numpy import *
 from matplotlib.pyplot import *
 
+import numpy as np
+
 import sys
 
 L = 10
@@ -98,6 +100,13 @@ legend()
 subplot(212, title='Magnetization vs. Temperature')
 plot(Ts, mmeans, 'o-', label='exact')
 legend()
+
+savefile = {
+    'Time array': Ts,
+    'energies': Emeans,
+    'magnetization': mmeans,
+}
+np.save('./worksheet_6/data/exact_dict.npy', np.array(list(savefile.items()), dtype=object))
 
 ##################################################
 ## MONTE CARLO
