@@ -116,12 +116,10 @@ public:
             
     if (delta_e_ij <= 0.0) {
       set(i, j, -get(i, j));
-      update();
       return true;
     } else {
       if (r < std::exp(-m_beta * delta_e_ij)) { // vllt funkt das so nicht, sondern braucht variable fuer exp
         set(i, j, -get(i, j));
-        update();
         return true;
       } else {
         return false;
