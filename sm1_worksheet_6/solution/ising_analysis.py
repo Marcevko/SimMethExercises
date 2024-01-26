@@ -44,8 +44,15 @@ def calc_observables(beta, L, number_of_samples=None, corr_time=None, equib_time
 
     return energies_array, magnetization_array
 
+def compute_binder_parameter(magnetization_array):
+    
+    term = np.power(magnetization_array, 4).mean() / (np.power(magnetization_array, 2).mean())**2
+    
+    return 1 - (1/3) * term
 
-def generate_data(temp_array, L, number_of_samples=None, corr_time=None, equip_time=None):
+
+
+def generate_data(temp_array, L, number_of_samples=None, corr_time=None, equip_time=None, plot_dir='observable_dynamics'):
     energy_mean_list, energy_std_list = [], []
     magnetization_mean_list, magnetization_std_list = [], []
     
@@ -57,6 +64,7 @@ def generate_data(temp_array, L, number_of_samples=None, corr_time=None, equip_t
             number_of_samples=number_of_samples, 
             corr_time=corr_time, 
             equib_time=equip_time,
+            plot_dir=plot_dir,
         )
         energy_mean, energy_std = energies_arr.mean(), energies_arr.std()
         magnetization_mean, magnetization_std = magnetizations_arr.mean(), magnetizations_arr.std()
@@ -69,28 +77,30 @@ def generate_data(temp_array, L, number_of_samples=None, corr_time=None, equip_t
         logging.info(f'Duration: {round(time.time() - start_time, 3)} s')
 
         np.save(
-            f'./sm1_worksheet_6/data/observable_dynamics/T_{round(1/beta, 2)}_L_{L}.npy', np.array([energies_arr, magnetizations_arr])
+            f'./sm1_worksheet_6/data/{plot_dir}/T_{round(1/beta, 2)}_L_{L}.npy', np.array([energies_arr, magnetizations_arr])
         )
 
     np.save(
-        f'./sm1_worksheet_6/data/T_dependent_observables_L_{L}.npy', np.array([energy_mean_list, magnetization_mean_list])
+        f'./sm1_worksheet_6/data/T_{plot_dir}_L_{L}.npy', 
+        np.array([energy_mean_list, energy_std_list, magnetization_mean_list, magnetization_std_list])
     )
 
 
 if __name__=="__main__":
     temp_array_ex1 = np.arange(1.0, 5.1, 0.1, dtype=float)
     L_array_ex1 = np.array([16, 64])
+    num_samples_ex1 = np.array([50000, 50000])
     corr_times_ex1 = [50, 100]
-    equib_times_ex1 = [5e4, 1e5]
+    equib_times_ex1 = [5e4, 5e6]
     
     temp_array_ex2 = np.arange(2.0, 2.41, 0.02, dtype=float)
     L_array_ex2 = np.array([4, 16, 32])
-    num_samples_ex2 = np.array([10000, 20000, 50000])
+    num_samples_ex2 = np.array([50000, 100000, 200000])
     corr_times_ex2 = [100, 100, 100]
-    equib_times_ex2 = [1e6, 1e7, 1e9]
+    equib_times_ex2 = [1e5, 5e6, 1e7]
 
-    GENERATE_EX_1 = True
-    GENERATE_EX_2 = False    
+    GENERATE_EX_1 = False
+    GENERATE_EX_2 = False
 
     # generating data for ex1
     if GENERATE_EX_1:
@@ -98,11 +108,11 @@ if __name__=="__main__":
             generate_data(
                 temp_array_ex1, 
                 L,
+                number_of_samples=num_samples_ex1[indx],
                 corr_time=corr_times_ex1[indx],
                 equip_time=equib_times_ex1[indx],
+                plot_dir='observable_dynamics'
             )
-
-    # plot T-dependent observables
     
     # generate data for ex2
     if GENERATE_EX_2:
@@ -113,11 +123,121 @@ if __name__=="__main__":
                 number_of_samples=num_samples_ex2[indx],
                 corr_time=corr_times_ex2[indx],
                 equip_time=equib_times_ex2[indx],
+                plot_dir='binder_observables'
             )
 
+    # generating ex_1 plot
+    import matplotlib.patches as mpatches
 
+    exact_results = np.load('./sm1_worksheet_6/data/ising_exact.npy')
+    mc_l_16 = np.load('./sm1_worksheet_6/data/T_observable_dynamics_L_16.npy')
+    mc_l_64 = np.load('./sm1_worksheet_6/data/T_observable_dynamics_L_64.npy')
 
-
-
-
+    fig = plt.figure(figsize=(8, 6))
+    plt.plot(
+        temp_array_ex1,
+        exact_results[0],
+        label='L=4 (exact energies)',
+        color='tomato'
+    )
+    plt.plot(
+        temp_array_ex1,
+        exact_results[1],
+        color='dodgerblue',
+        label='L=4 (exact magnetization)'
+        )
     
+    plt.errorbar(
+        temp_array_ex1, 
+        mc_l_16[0],
+        yerr=mc_l_16[1],
+        linestyle='',
+        marker='s',
+        label='L=16 (MC energies)',
+        color='red',
+        lolims=True,
+        uplims=True,
+    )
+    plt.errorbar(
+        temp_array_ex1, 
+        mc_l_16[2],
+        yerr=mc_l_16[3],
+        linestyle='',
+        marker='s',
+        label='L=16 (MC magnetization)',
+        color='darkturquoise',
+        lolims=True,
+        uplims=True,
+    )
+
+    plt.errorbar(
+        temp_array_ex1, 
+        mc_l_64[0],
+        yerr=mc_l_64[1],
+        linestyle='',
+        marker='o',
+        label='L=64 (MC energies)',
+        color='darkred',
+        lolims=True,
+        uplims=True,
+    )
+    plt.errorbar(
+        temp_array_ex1, 
+        mc_l_64[2],
+        yerr=mc_l_64[3],
+        linestyle='',
+        marker='o',
+        label='L=64 (MC magnetization)',
+        color='navy',
+        lolims=True,
+        uplims=True,
+    )
+
+    handels, labels = plt.gca().get_legend_handles_labels()
+    plt.legend(
+        handels, 
+        labels, 
+        loc='lower center',
+        bbox_to_anchor=(0.5, -0.2),
+        ncol=3,
+    )
+    plt.title('Equilibrated Observables for different Ising model sizes L')
+    fig.tight_layout()
+    plt.savefig('./sm1_worksheet_6/plots/ex_1_L_comparison.png', dpi=150)
+    plt.show()
+
+    # DIE DATEN MUESSEN NEU LAUFEN GELASSEN WERDEN!
+
+    # plotting the binder parameter
+    for L in L_array_ex2:
+        binder_list =  []
+        for temp in temp_array_ex2:
+            dataset = np.load(f'./sm1_worksheet_6/data/binder_observables/T_{round(temp, 2)}_L_{L}.npy')
+            binder_param = compute_binder_parameter(dataset[1])
+            binder_list.append(binder_param)
+            np.save(f'./sm1_worksheet_6/data/binder_L_{L}.npy', np.array(binder_list))
+
+    binder_l_4_list = np.load(f'./sm1_worksheet_6/data/binder_L_4.npy')
+    binder_l_16_list = np.load(f'./sm1_worksheet_6/data/binder_L_16.npy')
+    binder_l_32_list = np.load(f'./sm1_worksheet_6/data/binder_L_32.npy')
+    
+    plt.plot(
+        temp_array_ex2,
+        binder_l_4_list,
+        '.',
+        label='4',
+    )
+    plt.plot(
+        temp_array_ex2,
+        binder_l_16_list,
+        '.',
+        label='16',
+    )
+    plt.plot(
+        temp_array_ex2,
+        binder_l_32_list,
+        '.',
+        label='32',
+    )
+    plt.legend()
+    plt.show()
