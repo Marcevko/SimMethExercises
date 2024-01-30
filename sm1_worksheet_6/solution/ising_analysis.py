@@ -6,9 +6,15 @@ TODO:
 import cising
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 import logging
 from tqdm import tqdm
+
+import pickle
+import gzip
+
+from scipy.interpolate import interp1d
 
 import time
 logging.basicConfig(level=logging.INFO)
@@ -76,9 +82,16 @@ def generate_data(temp_array, L, number_of_samples=None, corr_time=None, equip_t
                             
         logging.info(f'Duration: {round(time.time() - start_time, 3)} s')
 
-        np.save(
-            f'./sm1_worksheet_6/data/{plot_dir}/T_{round(1/beta, 2)}_L_{L}.npy', np.array([energies_arr, magnetizations_arr])
-        )
+        # np.save(
+        #     f'./sm1_worksheet_6/data/{plot_dir}/T_{round(1/beta, 2)}_L_{L}.npy', np.array([energies_arr, magnetizations_arr])
+        # ) 
+        savefile = np.array([energies_arr, magnetizations_arr])
+        filepath = f'./sm1_worksheet_6/data/{plot_dir}/T_{round(1/beta, 2)}_L_{L}.pkl.gz'
+        with gzip.open(filepath, 'wb') as file:
+            pickle.dump(savefile, file)
+        
+        logging.info(f'Data saved successfully!')
+
 
     np.save(
         f'./sm1_worksheet_6/data/T_{plot_dir}_L_{L}.npy', 
@@ -95,8 +108,8 @@ if __name__=="__main__":
     
     temp_array_ex2 = np.arange(2.0, 2.41, 0.02, dtype=float)
     L_array_ex2 = np.array([4, 16, 32])
-    num_samples_ex2 = np.array([50000, 100000, 200000])
-    corr_times_ex2 = [100, 100, 100]
+    num_samples_ex2 = np.array([50000, 5e6, 1e7], dtype=int)
+    corr_times_ex2 = [100, 50, 50]
     equib_times_ex2 = [1e5, 5e6, 1e7]
 
     GENERATE_EX_1 = False
@@ -198,46 +211,83 @@ if __name__=="__main__":
         handels, 
         labels, 
         loc='lower center',
-        bbox_to_anchor=(0.5, -0.2),
+        bbox_to_anchor=(0.5, -0.25),
         ncol=3,
     )
     plt.title('Equilibrated Observables for different Ising model sizes L')
+    plt.xlabel(r'Temperature $T$')
+    plt.ylabel(r'Observable $m$ or $e$ [a.u.]')
     fig.tight_layout()
     plt.savefig('./sm1_worksheet_6/plots/ex_1_L_comparison.png', dpi=150)
     plt.show()
 
-    # DIE DATEN MUESSEN NEU LAUFEN GELASSEN WERDEN!
-
     # plotting the binder parameter
-    for L in L_array_ex2:
-        binder_list =  []
-        for temp in temp_array_ex2:
-            dataset = np.load(f'./sm1_worksheet_6/data/binder_observables/T_{round(temp, 2)}_L_{L}.npy')
-            binder_param = compute_binder_parameter(dataset[1])
-            binder_list.append(binder_param)
-            np.save(f'./sm1_worksheet_6/data/binder_L_{L}.npy', np.array(binder_list))
+    # for L in L_array_ex2:
+    #     binder_list =  []
+    #     for temp in temp_array_ex2:
+    #         filepath = f'./sm1_worksheet_6/data/binder_observables/T_{round(temp, 2)}_L_{L}.pkl.gz'
+    #         with gzip.open(filepath, 'rb', ) as f:
+    #             dataset = pickle.load(f)
+    #             binder_param = compute_binder_parameter(dataset[1])
+    #             binder_list.append(binder_param)
+    #     np.save(f'./sm1_worksheet_6/data/binder_L_{L}.npy', np.array(binder_list))
 
     binder_l_4_list = np.load(f'./sm1_worksheet_6/data/binder_L_4.npy')
     binder_l_16_list = np.load(f'./sm1_worksheet_6/data/binder_L_16.npy')
     binder_l_32_list = np.load(f'./sm1_worksheet_6/data/binder_L_32.npy')
+
+    # interpolate the data
+    def interpolate_binder_params(x_arr: np.ndarray, y_arr: np.ndarray):
+        interpolated_function = interp1d(x_arr, y_arr, kind='cubic')
+        return interpolated_function
     
-    plt.plot(
-        temp_array_ex2,
-        binder_l_4_list,
-        '.',
-        label='4',
-    )
-    plt.plot(
-        temp_array_ex2,
-        binder_l_16_list,
-        '.',
-        label='16',
-    )
-    plt.plot(
-        temp_array_ex2,
-        binder_l_32_list,
-        '.',
-        label='32',
-    )
-    plt.legend()
+    interpolation_x_locations = np.linspace(2.0, 2.40, int(1e5))
+    binder_l_4_interpolated = interpolate_binder_params(temp_array_ex2, binder_l_4_list)(interpolation_x_locations)
+    binder_l_16_interpolated = interpolate_binder_params(temp_array_ex2, binder_l_16_list)(interpolation_x_locations)
+    binder_l_32_interpolated = interpolate_binder_params(temp_array_ex2, binder_l_32_list)(interpolation_x_locations)
+    
+    fig = plt.figure(figsize=(8, 6))
+    plt.plot(temp_array_ex2, binder_l_4_list, 'o', label='L=4', color='mediumblue')
+    plt.plot(interpolation_x_locations, binder_l_4_interpolated, label='L=4, interpolated', color='mediumblue')
+    
+    plt.plot(temp_array_ex2, binder_l_16_list, 'o', label='L=16', color='darkred')
+    plt.plot(interpolation_x_locations, binder_l_16_interpolated, label='L=16, interpolated', color='darkred')
+
+    plt.plot(temp_array_ex2, binder_l_32_list, 'o', label='L=32', color='darkturquoise')
+    plt.plot(interpolation_x_locations, binder_l_32_interpolated, label='L=32, interpolated', color='darkturquoise')
+
+    plt.title(r'Binder Parameter $U$ vs. System Temperature $T$')
+    plt.xlabel(r'Temperature $T$')
+    plt.ylabel(r'Binder Parameter $U$')
+
+    handels, labels = plt.gca().get_legend_handles_labels()
+    plt.legend(
+            handels, 
+            labels, 
+            loc='lower center',
+            bbox_to_anchor=(0.5, -0.25),
+            ncol=3,
+        )
+
+    axin = inset_axes(plt.gca(), width="100%", height="100%", loc='center', bbox_to_anchor=(0, 0, 0.5, 0.5), bbox_transform=plt.gca().transAxes)
+
+    axin.plot(temp_array_ex2, binder_l_4_list, 'o', color='mediumblue')
+    axin.plot(interpolation_x_locations, binder_l_4_interpolated, color='mediumblue')
+
+    axin.plot(temp_array_ex2, binder_l_16_list, 'o', color='darkred')
+    axin.plot(interpolation_x_locations, binder_l_16_interpolated, color='darkred')
+
+    axin.plot(temp_array_ex2, binder_l_32_list, 'o', color='darkturquoise')
+    axin.plot(interpolation_x_locations, binder_l_32_interpolated, color='darkturquoise')
+
+    axin.legend().set_visible(False)
+    axin.set_xlim([2.24, 2.28])
+    axin.set_ylim([0.6, 0.65])
+    axin.set_xlabel('')  
+    axin.set_ylabel('')
+    axin.set_title('')
+
+    
+    fig.tight_layout()
+    plt.savefig('./sm1_worksheet_6/plots/binder_parameter.png', dpi=150)
     plt.show()
