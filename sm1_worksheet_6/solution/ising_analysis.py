@@ -15,6 +15,7 @@ import pickle
 import gzip
 
 from scipy.interpolate import interp1d
+from scipy.optimize import fsolve
 
 import time
 logging.basicConfig(level=logging.INFO)
@@ -99,6 +100,15 @@ def generate_data(temp_array, L, number_of_samples=None, corr_time=None, equip_t
     )
 
 
+def find_intersection(func1, func2, initial_guess):
+    def func_difference(x, func1, func2):
+        return func1(x) - func2(x)
+
+    intersection = fsolve(func_difference, initial_guess, args=(func1, func2))
+    return intersection
+
+
+
 if __name__=="__main__":
     temp_array_ex1 = np.arange(1.0, 5.1, 0.1, dtype=float)
     L_array_ex1 = np.array([16, 64])
@@ -114,6 +124,7 @@ if __name__=="__main__":
 
     GENERATE_EX_1 = False
     GENERATE_EX_2 = False
+    GENERATE_EX_3 = True
 
     # generating data for ex1
     if GENERATE_EX_1:
@@ -269,7 +280,7 @@ if __name__=="__main__":
             ncol=3,
         )
 
-    axin = inset_axes(plt.gca(), width="100%", height="100%", loc='center', bbox_to_anchor=(0, 0, 0.5, 0.5), bbox_transform=plt.gca().transAxes)
+    axin = inset_axes(plt.gca(), width="100%", height="100%", loc='center', bbox_to_anchor=(0.15, 0.18, 0.45, 0.5), bbox_transform=plt.gca().transAxes)
 
     axin.plot(temp_array_ex2, binder_l_4_list, 'o', color='mediumblue')
     axin.plot(interpolation_x_locations, binder_l_4_interpolated, color='mediumblue')
@@ -281,8 +292,8 @@ if __name__=="__main__":
     axin.plot(interpolation_x_locations, binder_l_32_interpolated, color='darkturquoise')
 
     axin.legend().set_visible(False)
-    axin.set_xlim([2.24, 2.28])
-    axin.set_ylim([0.6, 0.65])
+    axin.set_xlim([2.25, 2.27])
+    axin.set_ylim([0.61, 0.625])
     axin.set_xlabel('')  
     axin.set_ylabel('')
     axin.set_title('')
@@ -291,3 +302,58 @@ if __name__=="__main__":
     fig.tight_layout()
     plt.savefig('./sm1_worksheet_6/plots/binder_parameter.png', dpi=150)
     plt.show()
+
+    # calculate intersections
+    initial_guess = 2.26
+    intersec_l_4_16 = find_intersection(
+        interpolate_binder_params(temp_array_ex2, binder_l_4_list), 
+        interpolate_binder_params(temp_array_ex2, binder_l_16_list),
+        initial_guess,    
+    )   
+    intersec_l_4_32 = find_intersection(
+        interpolate_binder_params(temp_array_ex2, binder_l_4_list), 
+        interpolate_binder_params(temp_array_ex2, binder_l_32_list),
+        initial_guess,    
+    )
+    intersec_l_16_32 = find_intersection(
+        interpolate_binder_params(temp_array_ex2, binder_l_16_list), 
+        interpolate_binder_params(temp_array_ex2, binder_l_32_list),
+        initial_guess,    
+    )
+    binder_intersections = np.array([intersec_l_4_16, intersec_l_4_32, intersec_l_16_32])
+    np.save('./sm1_worksheet_6/data/binder_intersections.npy', binder_intersections)
+
+    critical_temp_calc, critical_temp_error = binder_intersections.mean(), binder_intersections.std()
+    print(f'estimated Critical Temperature: {critical_temp_calc}')
+    print(f'estimated error: {critical_temp_error}')
+
+    critical_temp_theo = 2/(np.log(1 + np.sqrt(2)))
+    print(f'Theoretical Critical Temperature: {critical_temp_theo}')
+
+    # generating data for 4.2
+    temp_array_ex_3_calc = np.array([critical_temp_calc])
+    temp_array_ex_3_theo = np.array([critical_temp_theo])
+    L_array_ex3 = np.array([8, 16, 32, 64, 128], dtype=int)
+    num_samples_ex3 = np.array([1e5, 5e5, 1e6, 5e6, 1e7], dtype=int)
+    corr_times_ex3 = np.array([100, 100, 50, 50, 50], dtype=int)
+    equib_times_ex3 = np.array([5e4, 5e4, 5e5, 5e6, 2e7], dtype=int)
+
+    if GENERATE_EX_3:
+        for indx, L in enumerate(L_array_ex3):
+            print(L)
+            generate_data(
+                temp_array_ex_3_calc,
+                L,
+                number_of_samples=num_samples_ex3[indx],
+                corr_time=corr_times_ex3[indx],
+                equip_time=equib_times_ex3[indx],
+                plot_dir='beta_estimation_calc_T',
+            )
+            generate_data(
+                temp_array_ex_3_theo,
+                L,
+                number_of_samples=num_samples_ex3[indx],
+                corr_time=corr_times_ex3[indx],
+                equip_time=equib_times_ex3[indx],
+                plot_dir='beta_estimation_theo_T',
+            )
