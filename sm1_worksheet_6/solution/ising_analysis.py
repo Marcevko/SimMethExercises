@@ -3,7 +3,7 @@ TODO:
     - error correction (PLUS correlation time?!)
 """
 
-import cising
+# import cising
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -52,12 +52,10 @@ def calc_observables(beta, L, number_of_samples=None, corr_time=None, equib_time
     return energies_array, magnetization_array
 
 def compute_binder_parameter(magnetization_array):
-    
-    term = np.power(magnetization_array, 4).mean() / (np.power(magnetization_array, 2).mean())**2
+    magnetization_array_abs = np.abs(magnetization_array)
+    term = np.power(magnetization_array_abs, 4).mean() / (np.power(magnetization_array_abs, 2).mean())**2
     
     return 1 - (1/3) * term
-
-
 
 def generate_data(temp_array, L, number_of_samples=None, corr_time=None, equip_time=None, plot_dir='observable_dynamics'):
     energy_mean_list, energy_std_list = [], []
@@ -108,6 +106,14 @@ def find_intersection(func1, func2, initial_guess):
     return intersection
 
 
+# def compute_mean_magnetization(filepath: str):
+#     with gzip.open(filepath, 'rb') as f:
+#         dataset = pickle.load(f)
+    
+#     return np.abs(dataset[1]).mean()
+
+# def compute
+
 
 if __name__=="__main__":
     temp_array_ex1 = np.arange(1.0, 5.1, 0.1, dtype=float)
@@ -124,7 +130,7 @@ if __name__=="__main__":
 
     GENERATE_EX_1 = False
     GENERATE_EX_2 = False
-    GENERATE_EX_3 = True
+    GENERATE_EX_3 = False
 
     # generating data for ex1
     if GENERATE_EX_1:
@@ -152,6 +158,23 @@ if __name__=="__main__":
 
     # generating ex_1 plot
     import matplotlib.patches as mpatches
+
+    # compute correct magnetizations and energies
+    for l_current in L_array_ex1:
+        mean_energies, mean_magnetizations = [], []
+        std_energies, std_magnetizations = [], []
+        for temp in temp_array_ex1:
+            filepath = f'./sm1_worksheet_6/data/observable_dynamics/T_{round(temp, 2)}_L_{int(l_current)}.npy'
+            dataset = np.load(filepath)
+
+            mean_energies.append(dataset[0].mean())
+            std_energies.append(dataset[0].std())
+
+            mean_magnetizations.append(np.abs(dataset[1]).mean())
+            std_magnetizations.append(np.abs(dataset[1]).std())
+        
+        savepath = f'./sm1_worksheet_6/data/T_observable_dynamics_L_{l_current}.npy'
+        np.save(savepath, np.array([mean_energies, std_energies, mean_magnetizations, std_magnetizations]))
 
     exact_results = np.load('./sm1_worksheet_6/data/ising_exact.npy')
     mc_l_16 = np.load('./sm1_worksheet_6/data/T_observable_dynamics_L_16.npy')
@@ -357,3 +380,51 @@ if __name__=="__main__":
                 equip_time=equib_times_ex3[indx],
                 plot_dir='beta_estimation_theo_T',
             )
+
+    # sim_list, theo_list = [], []
+    # for l_current in L_array_ex3:
+    #     filepath_theo = f'./sm1_worksheet_6/data/beta_estimation_theo_T/T_{round(critical_temp_theo, 2)}_L_{l_current}.pkl.gz'
+    #     filepath_sim = f'./sm1_worksheet_6/data/beta_estimation_calc_T/T_{round(critical_temp_calc, 2)}_L_{l_current}.pkl.gz'
+    #     with gzip.open(filepath_sim, 'rb') as f:
+    #         dataset = pickle.load(f)
+    #         magnetization = np.abs(dataset[1]).mean()
+    #         sim_list.append(magnetization)
+    #     with gzip.open(filepath_theo, 'rb') as f:
+    #         dataset = pickle.load(f)
+    #         magnetization = np.abs(dataset[1]).mean()
+    #         theo_list.append(magnetization)
+
+    # np.save(f'./sm1_worksheet_6/data/T_beta_estimation_calc_T.npy', np.array(sim_list))
+    # np.save(f'./sm1_worksheet_6/data/T_beta_estimation_theo_T.npy', np.array(theo_list))
+    """
+    Das Ergebnis des plots ist beta, c = 0.09411081, 0.92383345
+    """
+
+    from scipy.optimize import curve_fit
+    def exponential_func(x, beta, a, c):
+        return c + a*x**(-beta)
+    
+    def exponential_func_(x, beta, c):
+        return c*x**(-beta)
+
+    sim_magnetization_ex_3 = np.load(f'./sm1_worksheet_6/data/T_beta_estimation_calc_T.npy')
+    theo_magnetization_ex_3 = np.load(f'./sm1_worksheet_6/data/T_beta_estimation_theo_T.npy')
+
+    popt, pcov = curve_fit(exponential_func, L_array_ex3, theo_magnetization_ex_3, p0=[1/8, 1, 1])
+    popt_, pcov_ = curve_fit(exponential_func_, L_array_ex3, theo_magnetization_ex_3, p0=[1/8, 1])
+    print(popt, popt_)
+
+    plt.plot(L_array_ex3, sim_magnetization_ex_3, label=r'$T_c \approx 2.68$ (Theory)', marker='o', color='mediumblue')
+    plt.plot(L_array_ex3, theo_magnetization_ex_3, label=r'$T_c \approx 2.60$ (Simulated)', marker='o', color='darkred')
+
+    plt.plot(L_array_ex3, exponential_func_(L_array_ex3, *popt_), color='darkgray', label=r'Fit $m \sim c \cdot L^{- \beta_m }$')
+
+    plt.xscale('log')
+    plt.yscale('log')
+
+    plt.xlabel(r'Grid size $L$')
+    plt.ylabel(r'Magnetization $m$')
+
+    plt.legend()
+    plt.savefig(f'./sm1_worksheet_6/plots/critical_magnetization_plot.png', dpi=150)
+    plt.show()
